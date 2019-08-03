@@ -172,8 +172,13 @@ func (d *DMXController) Render() error {
 		d.packet[i+1] = d.channels[i]
 	}
 
-	d.device.Control(0x40, 0x04, 0x5008, 0x00, nil)
-	d.device.Control(0x40, 0x04, 0x1008, 0x00, nil)
+	if _, err := d.device.Control(0x40, 0x04, 0x5008, 0x00, nil); err != nil {
+		return err
+	}
+	if _, err := d.device.Control(0x40, 0x04, 0x1008, 0x00, nil); err != nil {
+		return err
+	}
+
 	if _, err := d.output.Write(d.packet); err != nil {
 		return err
 	}
