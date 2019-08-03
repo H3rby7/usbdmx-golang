@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/google/gousb"
-	"github.com/oliread/usbdmx"
+	"github.com/graywolf336/usbdmx"
 )
 
 // DMXController a real world FT232 DMX Controller to handle comms
@@ -18,6 +18,9 @@ type DMXController struct {
 	device            *gousb.Device
 	output            *gousb.OutEndpoint
 	outputInterfaceID int
+
+	hasError bool
+	err      error
 }
 
 // NewDMXController helper function for creating a new ft232 controller
@@ -35,44 +38,100 @@ func NewDMXController(conf usbdmx.ControllerConfig) DMXController {
 	return d
 }
 
-// Connect handles connectio to a mock DMX controller
+// Connect handles connection to a the ft232 DMX controller
 func (d *DMXController) Connect() error {
 	// try to connect to device
 	device, err := d.ctx.OpenDeviceWithVIDPID(gousb.ID(d.vid), gousb.ID(d.pid))
 	if err != nil {
+		d.hasError = true
+		d.err = err
 		return err
 	}
 	d.device = device
 
 	// make this device ours, even if it is being used elsewhere
 	if err := d.device.SetAutoDetach(true); err != nil {
+		d.hasError = true
+		d.err = err
 		return err
 	}
 
 	// open communications
 	commsInterface, _, err := d.device.DefaultInterface()
 	if err != nil {
+		d.hasError = true
+		d.err = err
 		return err
 	}
 
 	d.output, err = commsInterface.OutEndpoint(d.outputInterfaceID)
 	if err != nil {
+		d.hasError = true
+		d.err = err
 		return err
 	}
 
 	// Send our control headers for this device
-	d.device.Control(0x40, 0x00, 0x00, 0x00, nil)
-	d.device.Control(0x40, 0x03, 0x4138, 0x00, nil)
-	d.device.Control(0x40, 0x00, 0x00, 0x00, nil)
-	d.device.Control(0x40, 0x04, 0x1008, 0x00, nil)
-	d.device.Control(0x40, 0x02, 0x00, 0x00, nil)
-	d.device.Control(0x40, 0x03, 0x000c, 0x00, nil)
-	d.device.Control(0x40, 0x00, 0x0001, 0x00, nil)
-	d.device.Control(0x40, 0x00, 0x0002, 0x00, nil)
-	d.device.Control(0x40, 0x01, 0x0200, 0x00, nil)
-	d.device.Control(0x40, 0x04, 0x5008, 0x00, nil)
-	d.device.Control(0x40, 0x00, 0x0002, 0x00, nil)
-	d.device.Control(0x40, 0x04, 0x1008, 0x00, nil)
+	if err := sendControlHeaders(d.device); err != nil {
+		d.hasError = true
+		d.err = err
+		return err
+	}
+
+	d.hasError = false
+	d.err = nil
+
+	return nil
+}
+
+func sendControlHeaders(device *gousb.Device) error {
+	if _, err := device.Control(0x40, 0x00, 0x00, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x03, 0x4138, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x00, 0x00, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x04, 0x1008, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x02, 0x00, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x03, 0x000c, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x00, 0x0001, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x00, 0x0002, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x01, 0x0200, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x04, 0x5008, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x00, 0x0002, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x04, 0x1008, 0x00, nil); err != nil {
+		return err
+	}
 
 	return nil
 }

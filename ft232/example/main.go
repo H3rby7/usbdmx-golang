@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/oliread/usbdmx"
-	"github.com/oliread/usbdmx/ft232"
+	"github.com/graywolf336/usbdmx"
+	"github.com/graywolf336/usbdmx/ft232"
 )
 
 func main() {
@@ -15,11 +15,12 @@ func main() {
 	vid := uint16(0x0403)
 	pid := uint16(0x6001)
 	outputInterfaceID := flag.Int("output-id", 0, "Output interface ID for device")
+	inputInterfaceID := flag.Int("input-id", 0, "Input interface ID for device")
 	debugLevel := flag.Int("debug", 0, "Debug level for USB context")
 	flag.Parse()
 
 	// Create a configuration from our flags
-	config := usbdmx.NewConfig(vid, pid, *outputInterfaceID, *debugLevel)
+	config := usbdmx.NewConfig(vid, pid, *outputInterfaceID, *inputInterfaceID, *debugLevel)
 
 	// Get a usb context for our configuration
 	config.GetUSBContext()
