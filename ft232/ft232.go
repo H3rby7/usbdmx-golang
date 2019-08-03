@@ -118,7 +118,6 @@ func sendControlHeaders(device *gousb.Device) error {
 	if _, err := device.Control(0x40, 0x03, 0x000c, 0x00, nil); err != nil {
 		return err
 	}
-
 	if _, err := device.Control(0x40, 0x00, 0x0001, 0x00, nil); err != nil {
 		return err
 	}
@@ -166,7 +165,7 @@ func (d *DMXController) GetChannel(index int16) (byte, error) {
 	return d.channels[index-1], nil
 }
 
-// Render sends channel data to fixtures, in this case prints it to stdout
+// Render sends channel data to fixtures
 func (d *DMXController) Render() error {
 	for i := 0; i < 512; i++ {
 		d.packet[i+1] = d.channels[i]
@@ -179,9 +178,20 @@ func (d *DMXController) Render() error {
 		return err
 	}
 
-	if _, err := d.output.Write(d.packet); err != nil {
+	s, err := d.output.NewStream(len(d.packet), 1)
+	if err != nil {
 		return err
 	}
+
+	if _, err := s.Write(d.packet); err != nil {
+		return err
+	}
+
+	if err := s.Close(); err != nil {
+		return err
+	}
+
+	d.packet = make([]byte, 513)
 
 	return nil
 }
