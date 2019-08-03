@@ -3,7 +3,7 @@ package ft232
 import (
 	"testing"
 
-	"github.com/oliread/usbdmx"
+	"github.com/graywolf336/usbdmx"
 )
 
 var config = usbdmx.ControllerConfig{}

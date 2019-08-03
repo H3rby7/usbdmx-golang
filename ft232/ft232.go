@@ -1,6 +1,7 @@
 package ft232
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/gousb"
@@ -47,6 +48,15 @@ func (d *DMXController) Connect() error {
 		d.err = err
 		return err
 	}
+
+	// ensure we have the device
+	if device == nil {
+		d.hasError = true
+		d.err = errors.New("usb device not connected/found")
+		return d.err
+	}
+
+	// cache the usb device
 	d.device = device
 
 	// make this device ours, even if it is being used elsewhere
