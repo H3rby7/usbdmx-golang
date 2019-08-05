@@ -187,11 +187,5 @@ func (d *DMXController) Render() error {
 		return err
 	}
 
-	if err := s.Close(); err != nil {
-		return err
-	}
-
-	d.packet = make([]byte, 513)
-
-	return nil
+	return s.Close()
 }
