@@ -145,6 +145,15 @@ func sendControlHeaders(device *gousb.Device) error {
 	return nil
 }
 
+//GetChannels gets a copy of all of the channels
+func (d *DMXController) GetChannels() []byte {
+	channels := make([]byte, len(d.channels))
+
+	copy(channels, d.channels)
+
+	return channels
+}
+
 // SetChannel sets a single DMX channel value
 func (d *DMXController) SetChannel(index int16, data byte) error {
 	if index < 1 || index > 512 {
