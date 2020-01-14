@@ -22,6 +22,8 @@ type DMXController struct {
 
 	hasError bool
 	err      error
+
+	isDisconnected bool
 }
 
 // NewDMXController helper function for creating a new ft232 controller
@@ -90,8 +92,15 @@ func (d *DMXController) Connect() error {
 
 	d.hasError = false
 	d.err = nil
+	d.isDisconnected = false
 
 	return nil
+}
+
+//Disconnect disconnects the usb device
+func (d *DMXController) Disconnect() error {
+	d.isDisconnected = true
+	return d.device.Close()
 }
 
 func sendControlHeaders(device *gousb.Device) error {
@@ -176,6 +185,10 @@ func (d *DMXController) GetChannel(index int16) (byte, error) {
 
 // Render sends channel data to fixtures
 func (d *DMXController) Render() error {
+	if d.isDisconnected {
+		return nil
+	}
+
 	for i := 0; i < 512; i++ {
 		d.packet[i+1] = d.channels[i]
 	}
@@ -191,10 +204,11 @@ func (d *DMXController) Render() error {
 	if err != nil {
 		return err
 	}
+	defer s.Close()
 
 	if _, err := s.Write(d.packet); err != nil {
 		return err
 	}
 
-	return s.Close()
+	return nil
 }
