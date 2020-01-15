@@ -100,6 +100,10 @@ func (d *DMXController) Connect() error {
 //Disconnect disconnects the usb device
 func (d *DMXController) Disconnect() error {
 	d.isDisconnected = true
+	if d.device == nil {
+		return nil
+	}
+
 	return d.device.Close()
 }
 
