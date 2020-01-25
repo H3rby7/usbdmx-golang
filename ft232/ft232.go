@@ -160,6 +160,10 @@ func sendControlHeaders(device *gousb.Device) error {
 
 //GetChannels gets a copy of all of the channels
 func (d *DMXController) GetChannels() []byte {
+	if d == nil {
+		return make([]byte, 0)
+	}
+
 	channels := make([]byte, len(d.channels))
 
 	copy(channels, d.channels)
