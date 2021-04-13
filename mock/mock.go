@@ -3,7 +3,7 @@ package mock
 import (
 	"fmt"
 
-	"github.com/oliread/usbdmx"
+	"github.com/graywolf336/usbdmx"
 )
 
 // DMXController A mock controller for sending DMX commands to
@@ -28,7 +28,7 @@ func (d *DMXController) Connect() error {
 // SetChannel sets a single DMX channel value
 func (d *DMXController) SetChannel(index int16, data byte) error {
 	if index < 1 || index > 512 {
-		return fmt.Errorf("Index %d out of range, must be between 1 and 512", index)
+		return fmt.Errorf("index %d out of range, must be between 1 and 512", index)
 	}
 
 	d.channels[index-1] = data
@@ -39,7 +39,7 @@ func (d *DMXController) SetChannel(index int16, data byte) error {
 // GetChannel returns the value of a single DMX channel
 func (d *DMXController) GetChannel(index int16) (byte, error) {
 	if index < 1 || index > 512 {
-		return 0, fmt.Errorf("Index %d out of range, must be between 1 and 512", index)
+		return 0, fmt.Errorf("index %d out of range, must be between 1 and 512", index)
 	}
 
 	return d.channels[index-1], nil

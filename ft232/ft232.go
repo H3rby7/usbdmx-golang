@@ -43,6 +43,10 @@ func NewDMXController(conf usbdmx.ControllerConfig) DMXController {
 
 // Connect handles connection to a the ft232 DMX controller
 func (d *DMXController) Connect() error {
+	if d.ctx == nil {
+		return errors.New("the libusb context is missing")
+	}
+
 	// try to connect to device
 	device, err := d.ctx.OpenDeviceWithVIDPID(gousb.ID(d.vid), gousb.ID(d.pid))
 	if err != nil {
@@ -174,7 +178,7 @@ func (d *DMXController) GetChannels() []byte {
 // SetChannel sets a single DMX channel value
 func (d *DMXController) SetChannel(index int16, data byte) error {
 	if index < 1 || index > 512 {
-		return fmt.Errorf("Index %d out of range, must be between 1 and 512", index)
+		return fmt.Errorf("index %d out of range, must be between 1 and 512", index)
 	}
 
 	d.channels[index-1] = data
@@ -185,7 +189,7 @@ func (d *DMXController) SetChannel(index int16, data byte) error {
 // GetChannel returns the value of a single DMX channel
 func (d *DMXController) GetChannel(index int16) (byte, error) {
 	if index < 1 || index > 512 {
-		return 0, fmt.Errorf("Index %d out of range, must be between 1 and 512", index)
+		return 0, fmt.Errorf("index %d out of range, must be between 1 and 512", index)
 	}
 
 	return d.channels[index-1], nil

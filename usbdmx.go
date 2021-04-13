@@ -88,7 +88,7 @@ func NewConfig(vid, pid uint16, outputInterfaceID, inputInterfaceID, debugLevel 
 // ValidateDMXChannel helper function for ensuring channel is within range
 func ValidateDMXChannel(channel int) (err error) {
 	if channel < 1 || channel > 512 {
-		return fmt.Errorf("Channel %d out of range, must be between 1 and 512", channel)
+		return fmt.Errorf("channel %d out of range, must be between 1 and 512", channel)
 	}
 
 	return nil
