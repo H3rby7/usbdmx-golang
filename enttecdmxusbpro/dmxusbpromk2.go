@@ -1,6 +1,7 @@
 package enttecdmxusbpro
 
 import (
+	"errors"
 	"fmt"
 
 	usbdmx "github.com/H3rby7/usbdmx-golang"
@@ -20,6 +21,11 @@ type DMXController struct {
 	input             *gousb.InEndpoint
 	outputInterfaceID int
 	inputInterfaceID  int
+
+	hasError bool
+	err      error
+
+	isDisconnected bool
 }
 
 // NewDMXController helper function for creating a new DMX USB PRO Mk2 controller
@@ -56,65 +62,159 @@ func (d *DMXController) GetSerial() (info string, err error) {
 
 // Connect handles connection to a Enttec DMX USB Pro Mk2 controller
 func (d *DMXController) Connect() error {
+	if d.ctx == nil {
+		return errors.New("the libusb context is missing")
+	}
 	// try to connect to device
 	device, err := d.ctx.OpenDeviceWithVIDPID(gousb.ID(d.vid), gousb.ID(d.pid))
 	if err != nil {
+		d.hasError = true
+		d.err = err
 		return err
+	}
+
+	// ensure we have the device
+	if device == nil {
+		d.hasError = true
+		d.err = errors.New("usb device not connected/found")
+		return d.err
 	}
 	d.device = device
 
 	// make this device ours, even if it is being used elsewhere
 	if err := d.device.SetAutoDetach(true); err != nil {
+		d.hasError = true
+		d.err = err
 		return err
 	}
 
 	// open communications
 	cfg, err := d.device.Config(1)
 	if err != nil {
+		d.hasError = true
+		d.err = err
 		return err
 	}
 
 	intf, err := cfg.Interface(0, 0)
 	if err != nil {
+		d.hasError = true
+		d.err = err
 		return err
 	}
 
 	d.output, err = intf.OutEndpoint(d.outputInterfaceID)
 	if err != nil {
+		d.hasError = true
+		d.err = err
 		return err
 	}
 
 	commsInterface, _, err := d.device.DefaultInterface()
 	if err != nil {
+		d.hasError = true
+		d.err = err
 		return err
 	}
 
 	d.output, err = commsInterface.OutEndpoint(d.outputInterfaceID)
 	if err != nil {
+		d.hasError = true
+		d.err = err
 		return err
 	}
 
-	// d.input, err = commsInterface.InEndpoint(d.inputInterfaceID)
-	// if err != nil {
-	// 	return err
-	// }
+	if err := sendControlHeaders(d.device); err != nil {
+		d.hasError = true
+		d.err = err
+		return err
+	}
 
-	// Send our control headers for this device
-	d.device.Control(0x40, 0x00, 0x00, 0x00, nil)
-	d.device.Control(0x40, 0x03, 0x4138, 0x00, nil)
-	d.device.Control(0x40, 0x00, 0x00, 0x00, nil)
-	d.device.Control(0x40, 0x04, 0x1008, 0x00, nil)
-	d.device.Control(0x40, 0x02, 0x00, 0x00, nil)
-	d.device.Control(0x40, 0x03, 0x000c, 0x00, nil)
-	d.device.Control(0x40, 0x00, 0x0001, 0x00, nil)
-	d.device.Control(0x40, 0x00, 0x0002, 0x00, nil)
-	d.device.Control(0x40, 0x01, 0x0200, 0x00, nil)
+	if err := openUniverses(d.output); err != nil {
+		d.hasError = true
+		d.err = err
+		return err
+	}
 
-	// Open universe 1 & 2 for writing
-	d.output.Write([]byte{0x7E, 0x0D, 0x04, 0x00, 0xAD, 0x88, 0xD0, 0xC8, 0xE7})
-	d.output.Write([]byte{0x7E, 0xCB, 0x02, 0x00, 0x01, 0x01, 0xE7})
+	d.hasError = false
+	d.err = nil
+	d.isDisconnected = false
 
 	return nil
+}
+
+// Send our control headers for this device
+func sendControlHeaders(device *gousb.Device) error {
+	if _, err := device.Control(0x40, 0x00, 0x00, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x03, 0x4138, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x00, 0x00, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x04, 0x1008, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x02, 0x00, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x03, 0x000c, 0x00, nil); err != nil {
+		return err
+	}
+	if _, err := device.Control(0x40, 0x00, 0x0001, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x00, 0x0002, 0x00, nil); err != nil {
+		return err
+	}
+
+	if _, err := device.Control(0x40, 0x01, 0x0200, 0x00, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Open universe 1 & 2 for writing
+func openUniverses(out *gousb.OutEndpoint) error {
+	if _, err := out.Write([]byte{0x7E, 0x0D, 0x04, 0x00, 0xAD, 0x88, 0xD0, 0xC8, 0xE7}); err != nil {
+		return err
+	}
+	if _, err := out.Write([]byte{0x7E, 0xCB, 0x02, 0x00, 0x01, 0x01, 0xE7}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Disconnect disconnects the usb device
+func (d *DMXController) Disconnect() error {
+	d.isDisconnected = true
+	if d.device == nil {
+		return nil
+	}
+
+	return d.device.Close()
+}
+
+// GetChannels gets a copy of all of the channels of a universe
+func (d *DMXController) GetChannels(universe int16) ([]byte, error) {
+	if universe < 1 || universe > int16(len(d.channels)) {
+		return make([]byte, 0), fmt.Errorf("Universe %d does not exist", universe)
+	}
+
+	channels := make([]byte, len(d.channels[universe]))
+
+	copy(channels, d.channels[universe])
+
+	return channels, nil
 }
 
 // SetChannel sets a single DMX channel value
