@@ -9,7 +9,7 @@ control and special effects.
 
 Planned for support:
 
-* Enttec DMX USB Pro Mk2
+* Enttec DMX USB Pro
 
 If you don't see your controller here, but would like it to be added, create an issue 
 with the name of the device and a link to any more information.
