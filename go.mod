@@ -1,4 +1,4 @@
-module github.com/graywolf336/usbdmx
+module github.com/H3rby7/usbdmx-golang
 
 go 1.16
 

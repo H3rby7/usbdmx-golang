@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/graywolf336/usbdmx"
-	"github.com/graywolf336/usbdmx/ft232"
+	usbdmx "github.com/H3rby7/usbdmx-golang"
+	"github.com/H3rby7/usbdmx-golang/ft232"
 )
 
 func main() {

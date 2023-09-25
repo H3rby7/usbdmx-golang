@@ -3,7 +3,7 @@ package mock
 import (
 	"testing"
 
-	"github.com/graywolf336/usbdmx"
+	usbdmx "github.com/H3rby7/usbdmx-golang"
 )
 
 var config = usbdmx.ControllerConfig{}

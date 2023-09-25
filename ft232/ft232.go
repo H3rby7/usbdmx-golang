@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	usbdmx "github.com/H3rby7/usbdmx-golang"
 	"github.com/google/gousb"
-	"github.com/graywolf336/usbdmx"
 )
 
 // DMXController a real world FT232 DMX Controller to handle comms
@@ -101,7 +101,7 @@ func (d *DMXController) Connect() error {
 	return nil
 }
 
-//Disconnect disconnects the usb device
+// Disconnect disconnects the usb device
 func (d *DMXController) Disconnect() error {
 	d.isDisconnected = true
 	if d.device == nil {
@@ -162,7 +162,7 @@ func sendControlHeaders(device *gousb.Device) error {
 	return nil
 }
 
-//GetChannels gets a copy of all of the channels
+// GetChannels gets a copy of all of the channels
 func (d *DMXController) GetChannels() []byte {
 	if d == nil {
 		return make([]byte, 0)

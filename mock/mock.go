@@ -3,7 +3,7 @@ package mock
 import (
 	"fmt"
 
-	"github.com/graywolf336/usbdmx"
+	usbdmx "github.com/H3rby7/usbdmx-golang"
 )
 
 // DMXController A mock controller for sending DMX commands to
