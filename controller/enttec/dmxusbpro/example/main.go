@@ -5,11 +5,13 @@ import (
 	"log"
 	"time"
 
-	usbdmx "github.com/H3rby7/usbdmx-golang"
-	dmxusbpro "github.com/H3rby7/usbdmx-golang/enttecdmxusbpro"
+	usbdmxconfig "github.com/H3rby7/usbdmx-golang/config"
+	usbdmxcontroller "github.com/H3rby7/usbdmx-golang/controller"
+	"github.com/H3rby7/usbdmx-golang/controller/enttec/dmxusbpro"
 )
 
 func main() {
+	var controller usbdmxcontroller.USBDMXController
 	// Constants, these should really be defined in the module and will be
 	// as of the next release
 	vid := uint16(0x0403)
@@ -20,13 +22,10 @@ func main() {
 	flag.Parse()
 
 	// Create a configuration from our flags
-	config := usbdmx.NewConfig(vid, pid, *outputInterfaceID, *inputInterfaceID, *debugLevel)
-
-	// Get a usb context for our configuration
-	config.GetUSBContext()
+	config := usbdmxconfig.NewConfig(vid, pid, *outputInterfaceID, *inputInterfaceID, *debugLevel)
 
 	// Create a controller and connect to it
-	controller := dmxusbpro.NewDMXController(config)
+	controller = dmxusbpro.NewEnttecDMXUSBProController(config)
 	if err := controller.Connect(); err != nil {
 		log.Fatalf("Failed to connect DMX Controller: %s", err)
 	}
@@ -52,7 +51,7 @@ func main() {
 	// Create a go routine that will ensure our controller keeps sending data
 	// to our fixture with a short delay. No delay, or too much delay, may cause
 	// flickering in fixtures. Check the specification of your fixtures and controller
-	go func(c *dmxusbpro.DMXController) {
+	go func(c *dmxusbpro.EnttecDMXUSBProController) {
 		for {
 			if err := controller.Render(); err != nil {
 				log.Fatalf("Failed to render output: %s", err)

@@ -1,22 +1,10 @@
-package usbdmx
+package usbdmxconfig
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/BurntSushi/toml"
-	"github.com/google/gousb"
 )
-
-// Controller Generic interface for all USB DMX controllers
-type Controller interface {
-	Connect() (err error)
-	GetSerial() (info string, err error)
-	GetProduct() (info string, err error)
-	SetChannel(channel int16, value byte) error
-	GetChannel(channel int16) (byte, error)
-	Render() error
-}
 
 // ControllerConfig configuration for controlling device
 type ControllerConfig struct {
@@ -25,8 +13,6 @@ type ControllerConfig struct {
 	OutputInterfaceID int    `toml:"output_interface_id"`
 	InputInterfaceID  int    `toml:"input_interface_id"`
 	DebugLevel        int    `toml:"debug_level"`
-
-	Context *gousb.Context
 }
 
 // ReadConfigFile reads device configuration information from file
@@ -83,19 +69,4 @@ func NewConfig(vid, pid uint16, outputInterfaceID, inputInterfaceID, debugLevel 
 		InputInterfaceID:  inputInterfaceID,
 		DebugLevel:        debugLevel,
 	}
-}
-
-// ValidateDMXChannel helper function for ensuring channel is within range
-func ValidateDMXChannel(channel int) (err error) {
-	if channel < 1 || channel > 512 {
-		return fmt.Errorf("channel %d out of range, must be between 1 and 512", channel)
-	}
-
-	return nil
-}
-
-// GetUSBContext gets a gousb/context for a given configuration
-func (c *ControllerConfig) GetUSBContext() {
-	c.Context = gousb.NewContext()
-	c.Context.Debug(c.DebugLevel)
 }

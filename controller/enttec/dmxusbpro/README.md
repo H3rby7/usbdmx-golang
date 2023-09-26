@@ -1,5 +1,7 @@
 # Enttec USB DMX Pro
 
+Some Notes from the Enttec DMX USB Pro - API Document @v1.44 
+
 - [Enttec USB DMX Pro](#enttec-usb-dmx-pro)
   - [Message-Format](#message-format)
     - [Labels](#labels)
