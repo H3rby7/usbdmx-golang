@@ -6,7 +6,7 @@ import (
 	"time"
 
 	usbdmx "github.com/H3rby7/usbdmx-golang"
-	dmxusbpromk2 "github.com/H3rby7/usbdmx-golang/enttecdmxusbpro"
+	dmxusbpro "github.com/H3rby7/usbdmx-golang/enttecdmxusbpro"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 	config.GetUSBContext()
 
 	// Create a controller and connect to it
-	controller := dmxusbpromk2.NewDMXController(config)
+	controller := dmxusbpro.NewDMXController(config)
 	if err := controller.Connect(); err != nil {
 		log.Fatalf("Failed to connect DMX Controller: %s", err)
 	}
@@ -35,9 +35,9 @@ func main() {
 	// fixture, like a par can, will not be showing any light. We're ignoring
 	// errors but the SetChannel function will return an error if it fails to
 	// write to the array
-	controller.SetChannel(1, 1, 0)
-	controller.SetChannel(1, 2, 0)
-	controller.SetChannel(1, 3, 0)
+	controller.SetChannel(1, 0)
+	controller.SetChannel(2, 0)
+	controller.SetChannel(3, 0)
 
 	// Create an array of colours for our fixture to switch between
 	colours := [][]byte{
@@ -52,7 +52,7 @@ func main() {
 	// Create a go routine that will ensure our controller keeps sending data
 	// to our fixture with a short delay. No delay, or too much delay, may cause
 	// flickering in fixtures. Check the specification of your fixtures and controller
-	go func(c *dmxusbpromk2.DMXController) {
+	go func(c *dmxusbpro.DMXController) {
 		for {
 			if err := controller.Render(); err != nil {
 				log.Fatalf("Failed to render output: %s", err)
@@ -67,13 +67,13 @@ func main() {
 	// values are ouptut to stdout. Wait 2 seconds between updating our new channels
 	for i := 0; true; i++ {
 		colour := colours[i%len(colours)]
-		controller.SetChannel(1, 1, colour[0])
-		controller.SetChannel(1, 2, colour[1])
-		controller.SetChannel(1, 3, colour[2])
+		controller.SetChannel(1, colour[0])
+		controller.SetChannel(2, colour[1])
+		controller.SetChannel(3, colour[2])
 
-		r, _ := controller.GetChannel(1, 1)
-		g, _ := controller.GetChannel(1, 2)
-		b, _ := controller.GetChannel(1, 3)
+		r, _ := controller.GetChannel(1)
+		g, _ := controller.GetChannel(2)
+		b, _ := controller.GetChannel(3)
 
 		log.Printf("Ch1: %d \t Ch2: %d \t Ch3: %d", r, g, b)
 		time.Sleep(time.Second * 2)
