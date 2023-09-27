@@ -51,7 +51,7 @@ func main() {
 	// Create a go routine that will ensure our controller keeps sending data
 	// to our fixture with a short delay. No delay, or too much delay, may cause
 	// flickering in fixtures. Check the specification of your fixtures and controller
-	go func(c *dmxusbpro.EnttecDMXUSBProController) {
+	go func(c *usbdmxcontroller.USBDMXController) {
 		for {
 			if err := controller.Render(); err != nil {
 				log.Fatalf("Failed to render output: %s", err)

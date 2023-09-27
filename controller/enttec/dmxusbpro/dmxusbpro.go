@@ -48,8 +48,7 @@ type EnttecDMXUSBProController struct {
 }
 
 // Helper function for creating a new DMX USB PRO controller
-func NewEnttecDMXUSBProController(conf usbdmxconfig.ControllerConfig) EnttecDMXUSBProController {
-	d := EnttecDMXUSBProController{}
+func NewEnttecDMXUSBProController(conf usbdmxconfig.ControllerConfig) (d *EnttecDMXUSBProController) {
 
 	d.channels = make([]byte, DATA_LENGTH)
 
