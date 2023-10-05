@@ -30,15 +30,11 @@ func main() {
 		log.Fatalf("Failed to connect DMX Controller: %s", err)
 	}
 
-	// Set first three channels to zero, this assumes that our 3 channel RGB
-	// fixture, like a par can, will not be showing any light. We're ignoring
-	// errors but the SetChannel function will return an error if it fails to
-	// write to the array
-	controller.SetChannel(1, 0)
-	controller.SetChannel(2, 0)
-	controller.SetChannel(3, 0)
+	// Open any shutters / dimmers as needed
+	controller.SetChannel(10, 255)
+	controller.SetChannel(11, 75)
 
-	// Create an array of colours for our fixture to switch between
+	// Create an array of colours for our fixture to switch between (assume RGB)
 	colours := [][]byte{
 		[]byte{255, 0, 0},
 		[]byte{255, 255, 0},
@@ -47,6 +43,8 @@ func main() {
 		[]byte{0, 0, 255},
 		[]byte{255, 0, 255},
 	}
+	// Channels for RGB start at this Channel.
+	rgbStartChannel := int16(6)
 
 	// Create a go routine that will ensure our controller keeps sending data
 	// to our fixture with a short delay. No delay, or too much delay, may cause
@@ -66,15 +64,15 @@ func main() {
 	// values are ouptut to stdout. Wait 2 seconds between updating our new channels
 	for i := 0; true; i++ {
 		colour := colours[i%len(colours)]
-		controller.SetChannel(1, colour[0])
-		controller.SetChannel(2, colour[1])
-		controller.SetChannel(3, colour[2])
+		controller.SetChannel(rgbStartChannel, colour[0])
+		controller.SetChannel(rgbStartChannel+1, colour[1])
+		controller.SetChannel(rgbStartChannel+2, colour[2])
 
-		r, _ := controller.GetChannel(1)
-		g, _ := controller.GetChannel(2)
-		b, _ := controller.GetChannel(3)
+		r, _ := controller.GetChannel(rgbStartChannel)
+		g, _ := controller.GetChannel(rgbStartChannel + 1)
+		b, _ := controller.GetChannel(rgbStartChannel + 2)
 
-		log.Printf("Ch1: %d \t Ch2: %d \t Ch3: %d", r, g, b)
+		log.Printf("CHAN %d -> %d \t CHAN %d -> %d \t CHAN %d -> %d", rgbStartChannel, r, rgbStartChannel+1, g, rgbStartChannel+2, b)
 		time.Sleep(time.Second * 2)
 	}
 }
