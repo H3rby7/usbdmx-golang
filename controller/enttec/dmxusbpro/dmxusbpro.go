@@ -1,11 +1,10 @@
 package dmxusbpro
 
 import (
-	"errors"
 	"fmt"
+	"log"
 
-	usbdmxconfig "github.com/H3rby7/usbdmx-golang/config"
-	"github.com/google/gousb"
+	"github.com/tarm/serial"
 )
 
 const (
@@ -29,112 +28,61 @@ const (
 
 // Controller for Enttec DMX USB Pro device to handle comms
 type EnttecDMXUSBProController struct {
-	vid      uint16
-	pid      uint16
 	channels []byte
 	packet   []byte
 
-	ctx               *gousb.Context
-	device            *gousb.Device
-	output            *gousb.OutEndpoint
-	input             *gousb.InEndpoint
-	outputInterfaceID int
-	inputInterfaceID  int
-
-	hasError bool
-	err      error
-
-	isDisconnected bool
+	isWriter bool
+	isReader bool
+	conf     *serial.Config
+	port     *serial.Port
 }
 
 // Helper function for creating a new DMX USB PRO controller
-func NewEnttecDMXUSBProController(conf usbdmxconfig.ControllerConfig) (d *EnttecDMXUSBProController) {
-
+func NewEnttecDMXUSBProController(conf *serial.Config, isWriter bool) (d *EnttecDMXUSBProController) {
 	d.channels = make([]byte, DATA_LENGTH)
-
 	d.packet = make([]byte, PACKET_SIZE)
 
-	d.vid = conf.VID
-	d.pid = conf.PID
-	d.outputInterfaceID = conf.OutputInterfaceID
-	d.inputInterfaceID = conf.InputInterfaceID
-	d.ctx = gousb.NewContext()
-	d.ctx.Debug(conf.DebugLevel)
+	d.conf = conf
+	d.isWriter = isWriter
+	d.isReader = !isWriter
 
 	return d
 }
 
 // GetProduct returns a device product name
 func (d *EnttecDMXUSBProController) GetProduct() (string, error) {
-	return d.device.Product()
+	return "product", nil
 }
 
 // GetSerial returns a device serial number
 func (d *EnttecDMXUSBProController) GetSerial() (string, error) {
-	return d.device.SerialNumber()
+	return "serial", nil
 }
 
 // Connect handles connection to a Enttec DMX USB Pro controller
 func (d *EnttecDMXUSBProController) Connect() error {
-	if d.ctx == nil {
-		return errors.New("the libusb context is missing")
-	}
-	// try to connect to device
-	device, err := d.ctx.OpenDeviceWithVIDPID(gousb.ID(d.vid), gousb.ID(d.pid))
+	s, err := serial.OpenPort(d.conf)
 	if err != nil {
-		d.hasError = true
-		d.err = err
-		return err
+		log.Fatal(err)
 	}
-
-	// ensure we have the device
-	if device == nil {
-		d.hasError = true
-		d.err = errors.New("usb device not connected/found")
-		return d.err
-	}
-	d.device = device
-
-	// make this device ours, even if it is being used elsewhere
-	if err := d.device.SetAutoDetach(true); err != nil {
-		d.hasError = true
-		d.err = err
-		return err
-	}
-
-	// open communications
-	commsInterface, _, err := d.device.DefaultInterface()
-	if err != nil {
-		d.hasError = true
-		d.err = err
-		return err
-	}
-
-	d.output, err = commsInterface.OutEndpoint(d.outputInterfaceID)
-	if err != nil {
-		d.hasError = true
-		d.err = err
-		return err
-	}
-
-	d.hasError = false
-	d.err = nil
-	d.isDisconnected = false
+	d.port = s
 
 	return nil
 }
 
 // Disconnect disconnects the usb device
 func (d *EnttecDMXUSBProController) Disconnect() error {
-	d.isDisconnected = true
-	if d.device == nil {
+	if d.port == nil {
 		return nil
 	}
 
-	return d.device.Close()
+	return d.port.Close()
 }
 
 // GetChannels gets a copy of all of the channels of a universe
+// Returns our internal state of the channels
+// In write mode that means whatever we have set so far
+// In read mode that means whatever we read last.
 func (d *EnttecDMXUSBProController) GetChannels() ([]byte, error) {
 	channels := make([]byte, len(d.channels))
 
@@ -145,8 +93,12 @@ func (d *EnttecDMXUSBProController) GetChannels() ([]byte, error) {
 
 // SetChannel sets a single DMX channel value
 func (d *EnttecDMXUSBProController) SetChannel(index int16, data byte) error {
+	if d.isReader {
+		return fmt.Errorf("controller in READ mode must not WRITE")
+	}
+
 	if index < 1 || index > DATA_LENGTH {
-		return fmt.Errorf("Index %d out of range, must be between 1 and %d", index, DATA_LENGTH)
+		return fmt.Errorf("index %d out of range, must be between 1 and %d", index, DATA_LENGTH)
 	}
 
 	d.channels[index-1] = data
@@ -154,17 +106,13 @@ func (d *EnttecDMXUSBProController) SetChannel(index int16, data byte) error {
 	return nil
 }
 
-// GetChannel returns the value of a single DMX channel
-func (d *EnttecDMXUSBProController) GetChannel(index int16) (byte, error) {
-	if index < 1 || index > DATA_LENGTH {
-		return 0, fmt.Errorf("Index %d out of range, must be between 1 and %d", index, DATA_LENGTH)
-	}
-
-	return d.channels[index-1], nil
-}
-
 // Render sends channel data to fixtures
 func (d *EnttecDMXUSBProController) Render() error {
+
+	if d.isReader {
+		return fmt.Errorf("controller in READ mode must not WRITE")
+	}
+
 	// ENTTEC USB DMX PRO Start Message
 	d.packet[0] = MSG_DELIM_START
 
@@ -182,9 +130,18 @@ func (d *EnttecDMXUSBProController) Render() error {
 	// ENTTEC USB DMX PRO End Message
 	d.packet[PACKET_SIZE-1] = MSG_DELIM_END
 
-	if _, err := d.output.Write(d.packet); err != nil {
+	if _, err := d.port.Write(d.packet); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (d *EnttecDMXUSBProController) Read() error {
+	_, err := d.port.Read(d.packet)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// TODO: extract channels from packet
+	return err
 }

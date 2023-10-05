@@ -5,27 +5,22 @@ import (
 	"log"
 	"time"
 
-	usbdmxconfig "github.com/H3rby7/usbdmx-golang/config"
 	usbdmxcontroller "github.com/H3rby7/usbdmx-golang/controller"
 	"github.com/H3rby7/usbdmx-golang/controller/enttec/dmxusbpro"
+	"github.com/tarm/serial"
 )
 
 func main() {
 	var controller usbdmxcontroller.USBDMXController
-	// Constants, these should really be defined in the module and will be
-	// as of the next release
-	vid := uint16(0x0403)
-	pid := uint16(0x6001)
-	outputInterfaceID := flag.Int("output-id", 0, "Output interface ID for device")
-	inputInterfaceID := flag.Int("input-id", 0, "Input interface ID for device")
-	debugLevel := flag.Int("debug", 0, "Debug level for USB context")
+	baud := flag.Int("baud", 0, "Baudrate for the device")
+	name := flag.String("name", "", "Input interface (e.g. COM4)")
 	flag.Parse()
 
 	// Create a configuration from our flags
-	config := usbdmxconfig.NewConfig(vid, pid, *outputInterfaceID, *inputInterfaceID, *debugLevel)
+	config := &serial.Config{Name: *name, Baud: *baud}
 
 	// Create a controller and connect to it
-	controller = dmxusbpro.NewEnttecDMXUSBProController(config)
+	controller = dmxusbpro.NewEnttecDMXUSBProController(config, true)
 	if err := controller.Connect(); err != nil {
 		log.Fatalf("Failed to connect DMX Controller: %s", err)
 	}
@@ -36,12 +31,12 @@ func main() {
 
 	// Create an array of colours for our fixture to switch between (assume RGB)
 	colours := [][]byte{
-		[]byte{255, 0, 0},
-		[]byte{255, 255, 0},
-		[]byte{0, 255, 0},
-		[]byte{0, 255, 255},
-		[]byte{0, 0, 255},
-		[]byte{255, 0, 255},
+		{255, 0, 0},
+		{255, 255, 0},
+		{0, 255, 0},
+		{0, 255, 255},
+		{0, 0, 255},
+		{255, 0, 255},
 	}
 	// Channels for RGB start at this Channel.
 	rgbStartChannel := int16(6)
@@ -68,9 +63,10 @@ func main() {
 		controller.SetChannel(rgbStartChannel+1, colour[1])
 		controller.SetChannel(rgbStartChannel+2, colour[2])
 
-		r, _ := controller.GetChannel(rgbStartChannel)
-		g, _ := controller.GetChannel(rgbStartChannel + 1)
-		b, _ := controller.GetChannel(rgbStartChannel + 2)
+		chans, _ := controller.GetChannels()
+		r := chans[rgbStartChannel-1]
+		g := chans[rgbStartChannel]
+		b := chans[rgbStartChannel+1]
 
 		log.Printf("CHAN %d -> %d \t CHAN %d -> %d \t CHAN %d -> %d", rgbStartChannel, r, rgbStartChannel+1, g, rgbStartChannel+2, b)
 		time.Sleep(time.Second * 2)
