@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	usbdmxcontroller "github.com/H3rby7/usbdmx-golang/controller"
@@ -10,8 +13,28 @@ import (
 	"github.com/tarm/serial"
 )
 
+var controller usbdmxcontroller.USBDMXController
+
+func handleCancel() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c,
+		// https://www.gnu.org/software/libc/manual/html_node/Termination-Signals.html
+		syscall.SIGTERM, // "the normal way to politely ask a program to terminate"
+		syscall.SIGINT,  // Ctrl+C
+		syscall.SIGQUIT, // Ctrl-\
+		syscall.SIGHUP,  // "terminal is disconnected"
+	)
+	go func() {
+		for range c {
+			controller.Clear()
+			controller.Commit()
+			controller.Disconnect()
+			break
+		}
+	}()
+}
+
 func main() {
-	var controller usbdmxcontroller.USBDMXController
 	baud := flag.Int("baud", 57600, "Baudrate for the device")
 	name := flag.String("name", "", "Input interface (e.g. COM4 OR /dev/tty.usbserial)")
 	flag.Parse()
@@ -24,11 +47,12 @@ func main() {
 	if err := controller.Connect(); err != nil {
 		log.Fatalf("Failed to connect DMX Controller: %s", err)
 	}
+	handleCancel()
 
 	// Open shutter
-	controller.SetChannel(10, 255)
+	controller.Stage(10, 255)
 	// Open dimmer
-	controller.SetChannel(11, 75)
+	controller.Stage(11, 75)
 
 	// Create an array of colours for our fixture to switch between (assume RGB)
 	colours := [][]byte{
@@ -47,19 +71,19 @@ func main() {
 	// values are ouptut to stdout. Wait 2 seconds between updating our new channels
 	for i := 0; true; i++ {
 		colour := colours[i%len(colours)]
-		controller.SetChannel(rgbStartChannel, colour[0])
-		controller.SetChannel(rgbStartChannel+1, colour[1])
-		controller.SetChannel(rgbStartChannel+2, colour[2])
+		controller.Stage(rgbStartChannel, colour[0])
+		controller.Stage(rgbStartChannel+1, colour[1])
+		controller.Stage(rgbStartChannel+2, colour[2])
 
-		chans, _ := controller.GetChannels()
+		chans, _ := controller.GetStage()
 		r := chans[rgbStartChannel]
 		g := chans[rgbStartChannel+1]
 		b := chans[rgbStartChannel+2]
 
 		log.Printf("CHAN %d -> %d \t CHAN %d -> %d \t CHAN %d -> %d", rgbStartChannel, r, rgbStartChannel+1, g, rgbStartChannel+2, b)
 
-		if err := controller.Render(); err != nil {
-			log.Fatalf("Failed to render output: %s", err)
+		if err := controller.Commit(); err != nil {
+			log.Fatalf("Failed to commit output: %s", err)
 		}
 
 		time.Sleep(time.Second * 2)
