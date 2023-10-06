@@ -24,7 +24,7 @@ Size in Bytes | Description
 1 |Label to identify type of message. See [Labels](#labels)
 1 | Data length LSB. Valid range for data length is 0 to 600.
 1 | Data length MSB.
-*[data_length]* | Payload bytes
+*[data_length]* | Payload bytes (byte at index `1` contains channel `1`. So byte `0` is unused)
 1 | End of message delimiter, 0x7E.
 
 ### Labels
