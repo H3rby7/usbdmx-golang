@@ -54,41 +54,35 @@ func NewEnttecDMXUSBProController(conf *serial.Config, isWriter bool) *EnttecDMX
 	return d
 }
 
-// GetProduct returns a device product name
-func (d *EnttecDMXUSBProController) GetProduct() (string, error) {
-	return "product", nil
-}
-
-// GetSerial returns a device serial number
-func (d *EnttecDMXUSBProController) GetSerial() (string, error) {
-	return "serial", nil
+func (d *EnttecDMXUSBProController) GetName() string {
+	return d.conf.Name
 }
 
 // Connect handles connection to a Enttec DMX USB Pro controller
 func (d *EnttecDMXUSBProController) Connect() error {
 	s, err := serial.OpenPort(d.conf)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	d.port = s
 
 	return nil
 }
 
-// Disconnect disconnects the usb device
 func (d *EnttecDMXUSBProController) Disconnect() error {
 	if d.port == nil {
+		log.Printf("Not connected.")
 		return nil
 	}
 
 	return d.port.Close()
 }
 
-// GetChannels gets a copy of all of the channels of a universe
+// Gets a copy of all of the channels of a universe
 // Returns our internal state of the channels
 // In write mode that means whatever we have set so far
 // In read mode that means whatever we read last.
-func (d *EnttecDMXUSBProController) GetChannels() ([]byte, error) {
+func (d *EnttecDMXUSBProController) GetStage() ([]byte, error) {
 	channels := make([]byte, len(d.channels))
 
 	copy(channels, d.channels)
@@ -96,8 +90,7 @@ func (d *EnttecDMXUSBProController) GetChannels() ([]byte, error) {
 	return channels, nil
 }
 
-// SetChannel sets a single DMX channel value
-func (d *EnttecDMXUSBProController) SetChannel(index int16, data byte) error {
+func (d *EnttecDMXUSBProController) Stage(index int16, data byte) error {
 	if d.isReader {
 		return fmt.Errorf("controller in READ mode must not WRITE")
 	}
@@ -111,11 +104,14 @@ func (d *EnttecDMXUSBProController) SetChannel(index int16, data byte) error {
 	return nil
 }
 
-// Render sends channel data to fixtures
-func (d *EnttecDMXUSBProController) Render() error {
+func (d *EnttecDMXUSBProController) Commit() error {
 
 	if d.isReader {
-		return fmt.Errorf("controller in READ mode must not WRITE")
+		return fmt.Errorf("controller in READ mode and must not WRITE")
+	}
+
+	if d.port == nil {
+		return fmt.Errorf("not connected")
 	}
 
 	// ENTTEC USB DMX PRO Start Message
@@ -143,6 +139,12 @@ func (d *EnttecDMXUSBProController) Render() error {
 	}
 
 	return nil
+}
+
+func (d *EnttecDMXUSBProController) Clear() {
+	for i := range d.channels {
+		d.channels[i] = 0
+	}
 }
 
 func (d *EnttecDMXUSBProController) Read() error {
