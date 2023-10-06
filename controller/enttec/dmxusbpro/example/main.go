@@ -12,8 +12,8 @@ import (
 
 func main() {
 	var controller usbdmxcontroller.USBDMXController
-	baud := flag.Int("baud", 0, "Baudrate for the device")
-	name := flag.String("name", "", "Input interface (e.g. COM4)")
+	baud := flag.Int("baud", 57600, "Baudrate for the device")
+	name := flag.String("name", "", "Input interface (e.g. COM4 OR /dev/tty.usbserial)")
 	flag.Parse()
 
 	// Create a configuration from our flags
@@ -25,8 +25,9 @@ func main() {
 		log.Fatalf("Failed to connect DMX Controller: %s", err)
 	}
 
-	// Open any shutters / dimmers as needed
+	// Open shutter
 	controller.SetChannel(10, 255)
+	// Open dimmer
 	controller.SetChannel(11, 75)
 
 	// Create an array of colours for our fixture to switch between (assume RGB)
@@ -41,19 +42,6 @@ func main() {
 	// Channels for RGB start at this Channel.
 	rgbStartChannel := int16(6)
 
-	// Create a go routine that will ensure our controller keeps sending data
-	// to our fixture with a short delay. No delay, or too much delay, may cause
-	// flickering in fixtures. Check the specification of your fixtures and controller
-	go func(c *usbdmxcontroller.USBDMXController) {
-		for {
-			if err := controller.Render(); err != nil {
-				log.Fatalf("Failed to render output: %s", err)
-			}
-
-			time.Sleep(30 * time.Millisecond)
-		}
-	}(&controller)
-
 	// Create a loop that will cycle through all of the colours defined in the "colours"
 	// array and set the channels on our controller. Once the channels have been set their
 	// values are ouptut to stdout. Wait 2 seconds between updating our new channels
@@ -63,12 +51,23 @@ func main() {
 		controller.SetChannel(rgbStartChannel+1, colour[1])
 		controller.SetChannel(rgbStartChannel+2, colour[2])
 
+		// Open shutter
+		controller.SetChannel(10, 255)
+		// Open dimmer
+		controller.SetChannel(11, 75)
+
 		chans, _ := controller.GetChannels()
+		// Start with channel - 1 as this array is 0-indexed
 		r := chans[rgbStartChannel-1]
 		g := chans[rgbStartChannel]
 		b := chans[rgbStartChannel+1]
 
 		log.Printf("CHAN %d -> %d \t CHAN %d -> %d \t CHAN %d -> %d", rgbStartChannel, r, rgbStartChannel+1, g, rgbStartChannel+2, b)
+
+		if err := controller.Render(); err != nil {
+			log.Fatalf("Failed to render output: %s", err)
+		}
+
 		time.Sleep(time.Second * 2)
 	}
 }
