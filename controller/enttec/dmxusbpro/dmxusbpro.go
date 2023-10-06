@@ -82,17 +82,17 @@ func (d *EnttecDMXUSBProController) Disconnect() error {
 // Returns our internal state of the channels
 // In write mode that means whatever we have set so far
 // In read mode that means whatever we read last.
-func (d *EnttecDMXUSBProController) GetStage() ([]byte, error) {
+func (d *EnttecDMXUSBProController) GetStage() []byte {
 	channels := make([]byte, len(d.channels))
 
 	copy(channels, d.channels)
 
-	return channels, nil
+	return channels
 }
 
 func (d *EnttecDMXUSBProController) Stage(index int16, data byte) error {
-	if d.isReader {
-		return fmt.Errorf("controller in READ mode must not WRITE")
+	if !d.isWriter {
+		return fmt.Errorf("controller is not in WRITE mode")
 	}
 
 	if index < 1 || index > DMX_MAX_CHANNELS {
@@ -106,8 +106,8 @@ func (d *EnttecDMXUSBProController) Stage(index int16, data byte) error {
 
 func (d *EnttecDMXUSBProController) Commit() error {
 
-	if d.isReader {
-		return fmt.Errorf("controller in READ mode and must not WRITE")
+	if !d.isWriter {
+		return fmt.Errorf("controller is not in WRITE mode")
 	}
 
 	if d.port == nil {
@@ -147,11 +147,34 @@ func (d *EnttecDMXUSBProController) Clear() {
 	}
 }
 
+func (d *EnttecDMXUSBProController) ReadOnChangeOnly() error {
+	packet := []byte{
+		MSG_DELIM_START,
+		8,
+		1,
+		0,
+		1,
+		MSG_DELIM_END,
+	}
+	log.Printf("Writing %v", packet)
+
+	_, err := d.port.Write(packet)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (d *EnttecDMXUSBProController) Read() error {
-	_, err := d.port.Read(d.packet)
+	if !d.isReader {
+		return fmt.Errorf("controller is not in READ mode")
+	}
+	n, err := d.port.Read(d.packet)
 	if err != nil {
 		log.Fatal(err)
 	}
 	// TODO: extract channels from packet
+	log.Printf("Read %d bytes -> %v", n, d.packet[0:n])
 	return err
 }

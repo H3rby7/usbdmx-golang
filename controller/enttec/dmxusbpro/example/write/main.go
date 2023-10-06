@@ -75,7 +75,7 @@ func main() {
 		controller.Stage(rgbStartChannel+1, colour[1])
 		controller.Stage(rgbStartChannel+2, colour[2])
 
-		chans, _ := controller.GetStage()
+		chans := controller.GetStage()
 		r := chans[rgbStartChannel]
 		g := chans[rgbStartChannel+1]
 		b := chans[rgbStartChannel+2]
