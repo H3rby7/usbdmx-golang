@@ -12,8 +12,6 @@ const (
 	DMX_MAX_CHANNELS = 16
 	// Data length = Channels + 1 as DMX works 1-indexed [not 0-indexed]
 	DMX_DATA_LENGTH = DMX_MAX_CHANNELS + 1
-	// Size of full packed, payload, before and after
-	PACKET_SIZE = NUM_BYTES_BEFORE_PAYLOAD + DMX_DATA_LENGTH + NUM_BYTES_AFTER_PAYLOAD
 )
 
 // Controller for Enttec DMX USB Pro device to handle comms
