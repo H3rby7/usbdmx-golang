@@ -51,16 +51,10 @@ func main() {
 		controller.SetChannel(rgbStartChannel+1, colour[1])
 		controller.SetChannel(rgbStartChannel+2, colour[2])
 
-		// Open shutter
-		controller.SetChannel(10, 255)
-		// Open dimmer
-		controller.SetChannel(11, 75)
-
 		chans, _ := controller.GetChannels()
-		// Start with channel - 1 as this array is 0-indexed
-		r := chans[rgbStartChannel-1]
-		g := chans[rgbStartChannel]
-		b := chans[rgbStartChannel+1]
+		r := chans[rgbStartChannel]
+		g := chans[rgbStartChannel+1]
+		b := chans[rgbStartChannel+2]
 
 		log.Printf("CHAN %d -> %d \t CHAN %d -> %d \t CHAN %d -> %d", rgbStartChannel, r, rgbStartChannel+1, g, rgbStartChannel+2, b)
 
