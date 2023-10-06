@@ -1,7 +1,7 @@
-package usbdmxcontroller
+package dmxcontroller
 
 // Generic interface for all USB DMX controllers
-type USBDMXController interface {
+type DMXController interface {
 	// Connect the device
 	Connect() (err error)
 	// Disconnect the device

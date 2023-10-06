@@ -8,12 +8,12 @@ import (
 	"syscall"
 	"time"
 
-	usbdmxcontroller "github.com/H3rby7/usbdmx-golang/controller"
+	dmxcontroller "github.com/H3rby7/usbdmx-golang/controller"
 	"github.com/H3rby7/usbdmx-golang/controller/enttec/dmxusbpro"
 	"github.com/tarm/serial"
 )
 
-var controller usbdmxcontroller.USBDMXController
+var controller dmxcontroller.DMXController
 
 func handleCancel() {
 	c := make(chan os.Signal, 1)
