@@ -1,0 +1,25 @@
+package messages
+
+const (
+	LABEL_REPROGRAM_FIRMWARE_REQUEST           = 1
+	LABEL_PROGRAM_FLASH_PAGE_REQUEST           = 2
+	LABEL_PROGRAM_FLASH_PAGE_REPLY             = 2
+	LABEL_GET_WIDGET_PARAMS_REQUEST            = 3
+	LABEL_GET_WIDGET_PARAMS_REPLY              = 3
+	LABEL_SET_WIDGET_PARAMS_REQUEST            = 4
+	LABEL_RECEIVED_DMX_PACKET                  = 5
+	LABEL_OUTPUT_ONLY_SEND_DMX_PACKET_REQUESTS = 6
+	LABEL_SEND_RDM_PACKET_REQUEST              = 7
+	LABEL_RECEIVE_DMX_ON_CHANGE                = 8
+	LABEL_RECEIVED_DMX_CHANGE_OF_STATE_PACKET  = 9
+	LABEL_WIDGET_GET_SERIAL_NUMBER_REQUEST     = 10
+	LABEL_WIDGET_GET_SERIAL_NUMBER_REPLY       = 10
+	LABEL_SEND_RDM_DISCOVERY_REQUEST           = 11
+)
+
+const (
+	// Smallest possible label-index to identify the message type
+	SMALLEST_LABEL_INDEX = 1
+	// Biggest possible label-index to identify the message type
+	BIGGEST_LABEL_INDEX = 11
+)

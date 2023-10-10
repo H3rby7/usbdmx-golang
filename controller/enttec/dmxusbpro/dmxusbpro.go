@@ -101,7 +101,7 @@ func (d *EnttecDMXUSBProController) Commit() error {
 		return fmt.Errorf("not connected")
 	}
 
-	msg := messages.NewEnttecDMXUSBProApplicationMessage(6, d.channels)
+	msg := messages.NewEnttecDMXUSBProApplicationMessage(messages.LABEL_OUTPUT_ONLY_SEND_DMX_PACKET_REQUESTS, d.channels)
 	packet, err := msg.ToBytes()
 	if err != nil {
 		return err
@@ -127,7 +127,7 @@ func (d *EnttecDMXUSBProController) ReadOnChangeOnly() error {
 	if !d.isReader {
 		return fmt.Errorf("controller is not in READ mode")
 	}
-	msg := messages.NewEnttecDMXUSBProApplicationMessage(8, []byte{1})
+	msg := messages.NewEnttecDMXUSBProApplicationMessage(messages.LABEL_RECEIVE_DMX_ON_CHANGE, []byte{1})
 	packet, err := msg.ToBytes()
 	if err != nil {
 		return err

@@ -16,10 +16,6 @@ const (
 	NUM_BYTES_AFTER_PAYLOAD = 1
 	// Number of bytes that are not payload
 	NUM_BYTES_WRAPPER = NUM_BYTES_BEFORE_PAYLOAD + NUM_BYTES_AFTER_PAYLOAD
-	// Smallest possible label-index to identify the message type
-	SMALLEST_LABEL_INDEX = 1
-	// Biggest possible label-index to identify the message type
-	BIGGEST_LABEL_INDEX = 11
 	// Maximum data length
 	MAXIMUM_DATA_LENGTH = 600
 )
