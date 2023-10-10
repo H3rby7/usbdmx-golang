@@ -105,3 +105,76 @@ func FuzzTestToBytes(f *testing.F) {
 		}
 	})
 }
+
+// Test converting from bytes without payload
+func TestFromBytesNoPayload(t *testing.T) {
+	inputLabel := byte(9)
+	input := []byte{0x7E, byte(inputLabel), 0, 0, 0xE7}
+	result, err := FromBytes(input)
+	if err != nil {
+		t.Errorf("did not expect error, but got %e", err)
+	}
+	if result.label != inputLabel {
+		t.Errorf("expected result label to be %X, but got %X", inputLabel, result.label)
+	}
+	resultPayloadLength := len(result.payload)
+	if resultPayloadLength != 0 {
+		t.Errorf("expected payload length to be 0, instead got %d", resultPayloadLength)
+	}
+}
+
+func TestFromBytesBadMsgStart(t *testing.T) {
+	input := []byte{0xEE, 1, 0, 0, 0xE7}
+	_, err := FromBytes(input)
+	if err == nil {
+		t.Errorf("expected error, because messages must start with 0x7E")
+	}
+}
+
+func TestFromBytesBadMsgEnd(t *testing.T) {
+	input := []byte{0x7E, 1, 0, 0, 0xEE}
+	_, err := FromBytes(input)
+	if err == nil {
+		t.Errorf("expected error, because messages must end with 0x7E")
+	}
+}
+
+func TestFromBytesMsgTooSmall(t *testing.T) {
+	input := []byte{0x7E, 0xE7}
+	_, err := FromBytes(input)
+	if err == nil {
+		t.Errorf("expected error, because messages is too small (packet wrapper is already 5 bytes)")
+	}
+}
+
+func TestFromBytesLabelTooSmall(t *testing.T) {
+	input := []byte{0x7E, 0, 0, 0, 0xE7}
+	_, err := FromBytes(input)
+	if err == nil {
+		t.Errorf("expected error, because message label must be bigger than '0'")
+	}
+}
+
+func TestFromBytesLabelTooBig(t *testing.T) {
+	input := []byte{0x7E, 12, 0, 0, 0xE7}
+	_, err := FromBytes(input)
+	if err == nil {
+		t.Errorf("expected error, because message label must be smaller than '12'")
+	}
+}
+
+func TestFromBytesIndicatedLengthMismatchLSB(t *testing.T) {
+	input := []byte{0x7E, 1, 1, 0, 0xE7}
+	_, err := FromBytes(input)
+	if err == nil {
+		t.Errorf("expected error, because indicated datalength (1) mismatches actual length (0)")
+	}
+}
+
+func TestFromBytesIndicatedLengthMismatchMSB(t *testing.T) {
+	input := []byte{0x7E, 1, 0, 1, 0xE7}
+	_, err := FromBytes(input)
+	if err == nil {
+		t.Errorf("expected error, because indicated datalength (256) mismatches actual length (0)")
+	}
+}
