@@ -44,8 +44,12 @@ func FuzzTestToBytes(f *testing.F) {
 		f.Add(v)
 	}
 	f.Fuzz(func(t *testing.T, payload []byte) {
+		// ************* SETUP *********************
 		input := EnttecDMXUSBProApplicationMessage{label: 6, payload: payload}
+		// ************* ACTION *********************
 		result, err := input.ToBytes()
+		// ************* ASSERTIONS *********************
+		// Check for error case
 		if len(payload) > 600 {
 			if err == nil {
 				t.Errorf("expected error as payload exceeded limits")
@@ -55,15 +59,20 @@ func FuzzTestToBytes(f *testing.F) {
 			}
 		}
 		lastIndex := len(result) - 1
+		// PACKET ASSERTIONS
+		// message start byte
 		if result[0] != 0x7E {
 			t.Errorf("expected first byte to be '7E' but was %X", result[0])
 		}
+		// message end byte
 		if result[lastIndex] != 0xE7 {
 			t.Errorf("expected last byte to be 'E7' but was %X", result[lastIndex])
 		}
+		// check label
 		if result[1] != 6 {
 			t.Errorf("expected byte[1] (the label) to be '6' but was %d", result[1])
 		}
+		// data length checks
 		var expectedMSB byte
 		if len(payload) < 256 {
 			expectedMSB = 0
@@ -77,6 +86,7 @@ func FuzzTestToBytes(f *testing.F) {
 		if result[3] != expectedMSB {
 			t.Errorf("expected byte[3] (MSB of data_length) to be '%X' but was %X", expectedMSB, result[3])
 		}
+		// Verify length of the whole packet
 		expectedLen := 5 + len(payload)
 		if len(result) != expectedLen {
 			t.Errorf("expected size to be '%d' but was %d", expectedLen, len(result))
