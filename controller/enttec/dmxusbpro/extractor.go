@@ -27,6 +27,10 @@ func Extract(serialData []byte) (msg EnttecDMXUSBProApplicationMessage, err erro
 	// Check if a combination of Start/End Point gives us a valid DMX message.
 	for _, start := range potentialStarts {
 		for _, end := range potentialEnds {
+			if end < start {
+				// no need to check when end < start
+				continue
+			}
 			msg, err := FromBytes(serialData[start : end+1])
 			if err == nil {
 				return msg, err
