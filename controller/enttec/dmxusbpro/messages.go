@@ -90,6 +90,9 @@ func validateSchema(raw []byte) error {
 	if size < NUM_BYTES_WRAPPER {
 		return fmt.Errorf("message of size %d bytes is too small - must be at least %d bytes", size, NUM_BYTES_WRAPPER)
 	}
+	if size > MAXIMUM_DATA_LENGTH {
+		return fmt.Errorf("maximum data length [%d bytes] exceeded, actually was [%d]", MAXIMUM_DATA_LENGTH, size)
+	}
 	if raw[MSG_DELIM_START_INDEX] != MSG_DELIM_START {
 		return fmt.Errorf("message must start with %X, but is %X", MSG_DELIM_START, raw[MSG_DELIM_START_INDEX])
 	}
@@ -110,9 +113,6 @@ func validateSchema(raw []byte) error {
 // Return error if any validation fails, else nil.
 func validateSize(raw []byte) error {
 	actualPayloadSize := len(raw) - NUM_BYTES_WRAPPER
-	if actualPayloadSize > MAXIMUM_DATA_LENGTH {
-		return fmt.Errorf("maximum data length [%d bytes] exceeded, actually was [%d]", MAXIMUM_DATA_LENGTH, actualPayloadSize)
-	}
 	lsb := raw[MSG_DATA_LENGTH_LSB_INDEX]
 	msb := raw[MSG_DATA_LENGTH_MSB_INDEX]
 	indicatedPayloadSize := int(lsb) + (256 * int(msb))
