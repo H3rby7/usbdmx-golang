@@ -112,7 +112,7 @@ func TestFromBytesNoPayload(t *testing.T) {
 	input := []byte{0x7E, byte(inputLabel), 0, 0, 0xE7}
 	result, err := FromBytes(input)
 	if err != nil {
-		t.Errorf("did not expect error, but got %e", err)
+		t.Errorf("did not expect error, but got '%v'", err)
 	}
 	if result.label != inputLabel {
 		t.Errorf("expected result label to be %X, but got %X", inputLabel, result.label)
