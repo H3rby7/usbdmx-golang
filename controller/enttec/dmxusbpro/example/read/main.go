@@ -49,6 +49,10 @@ func main() {
 	c := make(chan messages.EnttecDMXUSBProApplicationMessage)
 	go controller.OnDMXChange(c)
 	for msg := range c {
+		cs, err := messages.ToChangeSet(msg)
 		log.Printf("Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
+		if err == nil {
+			log.Printf("Read \t%v", cs)
+		}
 	}
 }
