@@ -29,6 +29,16 @@ func TestToBytesNoPayload(t *testing.T) {
 	}
 }
 
+// Test converting to bytes with payload exceeding limits expecting error
+func TestToBytesLimitError(t *testing.T) {
+	payload := make([]byte, 601)
+	input := EnttecDMXUSBProApplicationMessage{label: 1, payload: payload}
+	_, err := input.ToBytes()
+	if err == nil {
+		t.Errorf("expected error as payload exceeded limits")
+	}
+}
+
 // e.G.: go test -v --fuzz=Fuzz .\controller\enttec\dmxusbpro
 func FuzzTestToBytes(f *testing.F) {
 	testCases := [][]byte{
