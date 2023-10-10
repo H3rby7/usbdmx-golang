@@ -74,8 +74,8 @@ func FromBytes(raw []byte) (msg EnttecDMXUSBProApplicationMessage, err error) {
 	if err = validateSize(raw); err != nil {
 		return
 	}
-	payloadStart := NUM_BYTES_BEFORE_PAYLOAD - 1
-	payloadEnd := len(raw) - NUM_BYTES_AFTER_PAYLOAD - 1
+	payloadStart := NUM_BYTES_BEFORE_PAYLOAD
+	payloadEnd := len(raw) - NUM_BYTES_AFTER_PAYLOAD
 	msg = EnttecDMXUSBProApplicationMessage{
 		label:   raw[MSG_LABEL_INDEX],
 		payload: raw[payloadStart:payloadEnd],
