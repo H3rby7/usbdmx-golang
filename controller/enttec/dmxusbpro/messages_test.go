@@ -41,7 +41,8 @@ func TestToBytesLimitError(t *testing.T) {
 
 // e.G.: go test -v --fuzz=Fuzz .\controller\enttec\dmxusbpro
 func FuzzTestToBytes(f *testing.F) {
-	testCases := [][]byte{
+	// 7 sample payloads
+	testPayloads := [][]byte{
 		{},
 		{0x69},
 		{0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0xFF},
@@ -50,12 +51,14 @@ func FuzzTestToBytes(f *testing.F) {
 		{0xE7, 0x7E},
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 	}
-	for _, v := range testCases {
-		f.Add(v)
+	// 7 test labels
+	testLabels := []byte{1, 2, 3, 6, 9, 10, 11}
+	for i := 0; i < 7; i++ {
+		f.Add(testPayloads[i], testLabels[i])
 	}
-	f.Fuzz(func(t *testing.T, payload []byte) {
+	f.Fuzz(func(t *testing.T, payload []byte, label byte) {
 		// ************* SETUP *********************
-		input := EnttecDMXUSBProApplicationMessage{label: 6, payload: payload}
+		input := EnttecDMXUSBProApplicationMessage{label: label, payload: payload}
 		inputDataLength := len(payload)
 		// ************* ACTION *********************
 		result, err := input.ToBytes()
@@ -80,8 +83,8 @@ func FuzzTestToBytes(f *testing.F) {
 			t.Errorf("expected last byte to be 'E7' but was %X", result[lastIndex])
 		}
 		// check label
-		if result[1] != 6 {
-			t.Errorf("expected byte[1] (the label) to be '6' but was %d", result[1])
+		if result[1] != label {
+			t.Errorf("expected byte[1] (the label) to be '%d' but was %d", label, result[1])
 		}
 		// data length checks
 		resultDataLength := int(result[2]) + 256*int(result[3])
