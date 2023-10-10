@@ -106,7 +106,7 @@ func (d *EnttecDMXUSBProController) Commit() error {
 		return err
 	}
 
-	log.Printf("Writing %v", packet)
+	log.Printf("Writing \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
 
 	_, err = d.port.Write(packet)
 	if err != nil {
@@ -158,7 +158,7 @@ func (d *EnttecDMXUSBProController) OnDMXChange(c chan EnttecDMXUSBProApplicatio
 	order := 0
 	for {
 		// Calculate order of buffers
-		order += 1
+		order = (order + 1) % 2
 		first := order
 		second := (order + 1) % 2
 		// Read into first buffer

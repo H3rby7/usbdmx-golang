@@ -40,6 +40,14 @@ type EnttecDMXUSBProApplicationMessage struct {
 	label byte
 }
 
+func (msg *EnttecDMXUSBProApplicationMessage) GetLabel() byte {
+	return msg.label
+}
+
+func (msg *EnttecDMXUSBProApplicationMessage) GetPayload() []byte {
+	return msg.payload[:]
+}
+
 func (msg *EnttecDMXUSBProApplicationMessage) ToBytes() ([]byte, error) {
 	dataLength := len(msg.payload)
 	if dataLength > MAXIMUM_DATA_LENGTH {

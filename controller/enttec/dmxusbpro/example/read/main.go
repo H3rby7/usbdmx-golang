@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -48,7 +47,7 @@ func main() {
 	controller.ReadOnChangeOnly()
 	c := make(chan dmxusbpro.EnttecDMXUSBProApplicationMessage)
 	go controller.OnDMXChange(c)
-	for i := range c {
-		fmt.Println(i)
+	for msg := range c {
+		log.Printf("Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
 	}
 }
