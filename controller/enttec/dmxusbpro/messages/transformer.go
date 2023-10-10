@@ -40,18 +40,18 @@ func ToChangeSet(msg EnttecDMXUSBProApplicationMessage) (map[int]byte, error) {
 	return m, nil
 }
 
-// LSB first
+// MSBs first
 func byteToBools(input byte) []bool {
 	out := make([]bool, 8)
 	for i := uint(0); i < 8; i++ {
-		mask := byte(1 << (7 - i))
+		mask := byte(1 << i)
 		masked := (input & mask)
-		out[i] = (masked >> (7 - i)) == 1
+		out[i] = (masked >> i) == 1
 	}
 	return out
 }
 
-// LSB first
+// MSBs first
 func bytesToBools(input []byte) []bool {
 	out := make([]bool, 0, 8*len(input))
 	for i := 0; i < len(input); i++ {
