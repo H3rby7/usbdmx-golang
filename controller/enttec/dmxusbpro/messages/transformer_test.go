@@ -5,7 +5,7 @@ import (
 )
 
 func TestByteToBools(t *testing.T) {
-	res := byteToBools(128)
+	res := byteToBools(1)
 	if !res[0] {
 		t.Errorf("expected res[%d] to be true", 0)
 	}
@@ -27,28 +27,28 @@ func FuzzTestByteToBools(f *testing.F) {
 		// create an Input LSB first
 		input := byte(0)
 		if zero {
-			input += 128
+			input += 1
 		}
 		if one {
-			input += 64
-		}
-		if two {
-			input += 32
-		}
-		if three {
-			input += 16
-		}
-		if four {
-			input += 8
-		}
-		if five {
-			input += 4
-		}
-		if six {
 			input += 2
 		}
+		if two {
+			input += 4
+		}
+		if three {
+			input += 8
+		}
+		if four {
+			input += 16
+		}
+		if five {
+			input += 32
+		}
+		if six {
+			input += 64
+		}
 		if seven {
-			input += 1
+			input += 128
 		}
 		// *** TRANSFORM ***
 		res := byteToBools(input)
@@ -61,11 +61,11 @@ func FuzzTestByteToBools(f *testing.F) {
 	})
 }
 
-// 1000 0000 => 128
+// 0000 0001 => 1
 func TestToChangeSetChannelZeroChanged(t *testing.T) {
 	input := EnttecDMXUSBProApplicationMessage{
 		label:   LABEL_RECEIVED_DMX_CHANGE_OF_STATE_PACKET,
-		payload: []byte{0, 128, 0, 0, 0, 0, 69},
+		payload: []byte{0, 1, 0, 0, 0, 0, 69},
 	}
 	result, err := ToChangeSet(input)
 	if err != nil {
@@ -76,11 +76,11 @@ func TestToChangeSetChannelZeroChanged(t *testing.T) {
 	}
 }
 
-// 0100 0000 => 64
+// 0000 0010 => 2
 func TestToChangeSetChannelOneChanged(t *testing.T) {
 	input := EnttecDMXUSBProApplicationMessage{
 		label:   LABEL_RECEIVED_DMX_CHANGE_OF_STATE_PACKET,
-		payload: []byte{0, 64, 0, 0, 0, 0, 96},
+		payload: []byte{0, 2, 0, 0, 0, 0, 96},
 	}
 	result, err := ToChangeSet(input)
 	if err != nil {
@@ -88,5 +88,49 @@ func TestToChangeSetChannelOneChanged(t *testing.T) {
 	}
 	if result[1] != 96 {
 		t.Errorf("expected channel[%d] to be %d, but was %d", 1, 96, result[1])
+	}
+}
+
+// 0000 0000 => 0
+// 0000 0001 => 1
+func TestToChangeSetChannelEightChanged(t *testing.T) {
+	input := EnttecDMXUSBProApplicationMessage{
+		label:   LABEL_RECEIVED_DMX_CHANGE_OF_STATE_PACKET,
+		payload: []byte{0, 0, 1, 0, 0, 0, 161},
+	}
+	result, err := ToChangeSet(input)
+	if err != nil {
+		t.Errorf("expected no error, but got %v", err)
+	}
+	if result[8] != 161 {
+		t.Errorf("expected channel[%d] to be %d, but was %d", 8, 161, result[8])
+	}
+}
+
+// 0001 1000 => 24
+// 0100 0011 => 67
+func TestToChangeSetMultipleChannelsChanged(t *testing.T) {
+	input := EnttecDMXUSBProApplicationMessage{
+		label:   LABEL_RECEIVED_DMX_CHANGE_OF_STATE_PACKET,
+		payload: []byte{0, 24, 67, 0, 0, 0, 13, 14, 18, 19, 114},
+	}
+	result, err := ToChangeSet(input)
+	if err != nil {
+		t.Errorf("expected no error, but got %v", err)
+	}
+	if result[3] != 13 {
+		t.Errorf("expected channel[%d] to be %d, but was %d", 3, 13, result[3])
+	}
+	if result[4] != 14 {
+		t.Errorf("expected channel[%d] to be %d, but was %d", 4, 14, result[4])
+	}
+	if result[8] != 18 {
+		t.Errorf("expected channel[%d] to be %d, but was %d", 8, 18, result[8])
+	}
+	if result[9] != 19 {
+		t.Errorf("expected channel[%d] to be %d, but was %d", 9, 19, result[9])
+	}
+	if result[14] != 114 {
+		t.Errorf("expected channel[%d] to be %d, but was %d", 14, 114, result[14])
 	}
 }
