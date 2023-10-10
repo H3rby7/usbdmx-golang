@@ -109,10 +109,13 @@ func validateSchema(raw []byte) error {
 // Validate the bytes according to the message definition.
 // Return error if any validation fails, else nil.
 func validateSize(raw []byte) error {
+	actualPayloadSize := len(raw) - NUM_BYTES_WRAPPER
+	if actualPayloadSize > MAXIMUM_DATA_LENGTH {
+		return fmt.Errorf("maximum data length [%d bytes] exceeded, actually was [%d]", MAXIMUM_DATA_LENGTH, actualPayloadSize)
+	}
 	lsb := raw[MSG_DATA_LENGTH_LSB_INDEX]
 	msb := raw[MSG_DATA_LENGTH_MSB_INDEX]
 	indicatedPayloadSize := int(lsb) + (256 * int(msb))
-	actualPayloadSize := len(raw) - NUM_BYTES_WRAPPER
 	if indicatedPayloadSize != actualPayloadSize {
 		return fmt.Errorf("message declared payload size as %d, but is %d", indicatedPayloadSize, actualPayloadSize)
 	}

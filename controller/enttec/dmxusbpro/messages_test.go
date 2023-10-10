@@ -177,6 +177,14 @@ func TestFromBytesLabelTooBig(t *testing.T) {
 	}
 }
 
+func TestFromBytesLimitError(t *testing.T) {
+	input := make([]byte, 601)
+	_, err := FromBytes(input)
+	if err == nil {
+		t.Errorf("expected error as payload exceeded limits")
+	}
+}
+
 func TestFromBytesIndicatedLengthMismatchLSB(t *testing.T) {
 	input := []byte{0x7E, 1, 1, 0, 0xE7}
 	_, err := FromBytes(input)
