@@ -17,6 +17,8 @@ const (
 	SMALLEST_LABEL_INDEX = 1
 	// Biggest possible label-index to identify the message type
 	BIGGEST_LABEL_INDEX = 11
+	// Maximum data length
+	MAXIMUM_DATA_LENGTH = 600
 )
 
 const (
@@ -32,14 +34,17 @@ const (
 
 // Controller for Enttec DMX USB Pro device to handle comms
 type EnttecDMXUSBProApplicationMessage struct {
-	// Message Content
+	// Message Content (max Size 600)
 	payload []byte
 	// Label to identify the type of message
 	label byte
 }
 
-func (msg *EnttecDMXUSBProApplicationMessage) ToBytes() []byte {
+func (msg *EnttecDMXUSBProApplicationMessage) ToBytes() ([]byte, error) {
 	dataLength := len(msg.payload)
+	if dataLength > MAXIMUM_DATA_LENGTH {
+		return nil, fmt.Errorf("maximum data length [%d bytes] exceeded, actually was [%d]", MAXIMUM_DATA_LENGTH, dataLength)
+	}
 	packetSize := dataLength + NUM_BYTES_WRAPPER
 	packet := make([]byte, packetSize)
 	// Add 'start message'-delimiter
@@ -59,7 +64,7 @@ func (msg *EnttecDMXUSBProApplicationMessage) ToBytes() []byte {
 	// Add 'end message'-delimiter
 	packet[packetSize-1] = MSG_DELIM_END
 
-	return packet
+	return packet, nil
 }
 
 func FromBytes(raw []byte) (msg EnttecDMXUSBProApplicationMessage, err error) {

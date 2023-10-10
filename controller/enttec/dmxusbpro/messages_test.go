@@ -7,7 +7,7 @@ import (
 // Test converting to bytes without payload
 func TestToBytesNoPayload(t *testing.T) {
 	input := EnttecDMXUSBProApplicationMessage{label: 1, payload: []byte{}}
-	result := input.ToBytes()
+	result, _ := input.ToBytes()
 	lastIndex := len(result) - 1
 	if result[0] != 0x7E {
 		t.Errorf("expected first byte to be '7E' but was %X", result[0])
@@ -22,7 +22,7 @@ func TestToBytesNoPayload(t *testing.T) {
 		t.Errorf("expected byte[2] (LSB of data_length) to be '0' but was %d", result[2])
 	}
 	if result[3] != 0 {
-		t.Errorf("expected byte[3] (LSB of data_length) to be '0' but was %d", result[3])
+		t.Errorf("expected byte[3] (MSB of data_length) to be '0' but was %d", result[3])
 	}
 	if len(result) != 5 {
 		t.Errorf("expected size to be '5' but was %d", len(result))
@@ -33,7 +33,7 @@ func TestToBytesNoPayload(t *testing.T) {
 func TestToBytesSmallPayload(t *testing.T) {
 	payload := byte(0x69)
 	input := EnttecDMXUSBProApplicationMessage{label: 6, payload: []byte{payload}}
-	result := input.ToBytes()
+	result, _ := input.ToBytes()
 	lastIndex := len(result) - 1
 	if result[0] != 0x7E {
 		t.Errorf("expected first byte to be '7E' but was %X", result[0])
@@ -48,7 +48,7 @@ func TestToBytesSmallPayload(t *testing.T) {
 		t.Errorf("expected byte[2] (LSB of data_length) to be '1' but was %d", result[2])
 	}
 	if result[3] != 0 {
-		t.Errorf("expected byte[3] (LSB of data_length) to be '0' but was %d", result[3])
+		t.Errorf("expected byte[3] (MSB of data_length) to be '0' but was %d", result[3])
 	}
 	if result[4] != payload {
 		t.Errorf("expected byte[4] to be our payload '%X' but was %X", payload, result[4])
@@ -62,7 +62,7 @@ func TestToBytesSmallPayload(t *testing.T) {
 func TestToBytesBigPayload(t *testing.T) {
 	payload := []byte{0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0xFF}
 	input := EnttecDMXUSBProApplicationMessage{label: 6, payload: payload}
-	result := input.ToBytes()
+	result, _ := input.ToBytes()
 	lastIndex := len(result) - 1
 	if result[0] != 0x7E {
 		t.Errorf("expected first byte to be '7E' but was %X", result[0])
@@ -77,7 +77,7 @@ func TestToBytesBigPayload(t *testing.T) {
 		t.Errorf("expected byte[2] (LSB of data_length) to be '10' but was %d", result[2])
 	}
 	if result[3] != 0 {
-		t.Errorf("expected byte[3] (LSB of data_length) to be '0' but was %d", result[3])
+		t.Errorf("expected byte[3] (MSB of data_length) to be '0' but was %d", result[3])
 	}
 	if len(result) != 15 {
 		t.Errorf("expected size to be '15' but was %d", len(result))
@@ -95,6 +95,7 @@ func TestToBytesBigPayload(t *testing.T) {
 func FuzzTestToBytes(f *testing.F) {
 	testCases := [][]byte{
 		{},
+		{0x69},
 		{0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0xFF},
 		{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20},
 		{255, 254, 253, 252, 251, 250, 249},
@@ -106,7 +107,15 @@ func FuzzTestToBytes(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, payload []byte) {
 		input := EnttecDMXUSBProApplicationMessage{label: 6, payload: payload}
-		result := input.ToBytes()
+		result, err := input.ToBytes()
+		if len(payload) > 600 {
+			if err == nil {
+				t.Errorf("expected error as payload exceeded limits")
+			} else {
+				// We have an error (and no data to check)
+				return
+			}
+		}
 		lastIndex := len(result) - 1
 		if result[0] != 0x7E {
 			t.Errorf("expected first byte to be '7E' but was %X", result[0])
@@ -117,10 +126,18 @@ func FuzzTestToBytes(f *testing.F) {
 		if result[1] != 6 {
 			t.Errorf("expected byte[1] (the label) to be '6' but was %d", result[1])
 		}
+		var expectedMSB byte
 		if len(payload) < 256 {
-			if result[3] != 0 {
-				t.Errorf("expected byte[3] (LSB of data_length) to be '0' but was %d", result[3])
+			expectedMSB = 0
+		} else {
+			if len(payload) < 512 {
+				expectedMSB = 1
+			} else {
+				expectedMSB = 2
 			}
+		}
+		if result[3] != expectedMSB {
+			t.Errorf("expected byte[3] (MSB of data_length) to be '%X' but was %X", expectedMSB, result[3])
 		}
 		expectedLen := 5 + len(payload)
 		if len(result) != expectedLen {

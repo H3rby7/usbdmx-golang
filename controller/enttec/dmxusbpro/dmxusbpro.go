@@ -98,11 +98,14 @@ func (d *EnttecDMXUSBProController) Commit() error {
 	}
 
 	msg := EnttecDMXUSBProApplicationMessage{payload: d.channels, label: 6}
-	packet := msg.ToBytes()
+	packet, err := msg.ToBytes()
+	if err != nil {
+		return err
+	}
 
 	log.Printf("Writing %v", packet)
 
-	_, err := d.port.Write(packet)
+	_, err = d.port.Write(packet)
 	if err != nil {
 		return err
 	}
