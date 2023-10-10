@@ -10,8 +10,8 @@ type DMXController interface {
 	GetName() string
 	// Stage DMX value
 	Stage(channel int16, value byte) error
-	// Read from DMX
-	Read() error
+	// Read raw from DMX
+	Read(buf []byte) (int, error)
 	// Get staged/last read DMX values
 	GetStage() []byte
 	// Commit the staged values to the DMX network

@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/H3rby7/usbdmx-golang/controller/enttec/dmxusbpro"
 	"github.com/tarm/serial"
@@ -46,10 +46,9 @@ func main() {
 	}
 	handleCancel()
 	controller.ReadOnChangeOnly()
-
-	for i := 0; true; i++ {
-		controller.Read()
-		// controller.GetStage()
-		time.Sleep(time.Millisecond * 30)
+	c := make(chan dmxusbpro.EnttecDMXUSBProApplicationMessage)
+	go controller.OnDMXChange(c)
+	for i := range c {
+		fmt.Println(i)
 	}
 }

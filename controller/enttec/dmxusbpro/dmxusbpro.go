@@ -3,6 +3,7 @@ package dmxusbpro
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/tarm/serial"
 )
@@ -19,10 +20,11 @@ type EnttecDMXUSBProController struct {
 	// Holds DMX data, as DMX starts with channel '1' the index '0' is unused.
 	channels []byte
 
-	isWriter bool
-	isReader bool
-	conf     *serial.Config
-	port     *serial.Port
+	isWriter     bool
+	isReader     bool
+	readOnChange bool
+	conf         *serial.Config
+	port         *serial.Port
 }
 
 // Helper function for creating a new DMX USB PRO controller
@@ -33,6 +35,7 @@ func NewEnttecDMXUSBProController(conf *serial.Config, isWriter bool) *EnttecDMX
 	d.conf = conf
 	d.isWriter = isWriter
 	d.isReader = !isWriter
+	d.readOnChange = false
 
 	return d
 }
@@ -120,40 +123,56 @@ func (d *EnttecDMXUSBProController) Clear() {
 }
 
 func (d *EnttecDMXUSBProController) ReadOnChangeOnly() error {
-	packet := []byte{
-		MSG_DELIM_START,
-		8,
-		1,
-		0,
-		1,
-		MSG_DELIM_END,
-	}
-	log.Printf("Writing %v", packet)
-
-	_, err := d.port.Write(packet)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *EnttecDMXUSBProController) Read() error {
 	if !d.isReader {
 		return fmt.Errorf("controller is not in READ mode")
 	}
-	packet := make([]byte, 512)
-	// Read until we get a 126 (7E)
-	// Assume next byte is 9 (change packet) or 5 (update)
-	// datasize LSB
-	// datasize MSB
-	// calculate position of expected 231 (E7)
-	// If 231 is at expected position we can interpret the byte array.
-	n, err := d.port.Read(packet)
+	msg := EnttecDMXUSBProApplicationMessage{label: 8, payload: []byte{1}}
+	packet, err := msg.ToBytes()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	// TODO: extract channels from packet
-	log.Printf("Read %d bytes -> %v", n, packet[0:n])
-	return err
+	log.Printf("Writing %v", packet)
+	_, err = d.port.Write(packet)
+	if err != nil {
+		return err
+	}
+	d.readOnChange = true
+	return nil
+}
+
+func (d *EnttecDMXUSBProController) Read(buf []byte) (int, error) {
+	if !d.isReader {
+		return -1, fmt.Errorf("controller is not in READ mode")
+	}
+	return d.port.Read(buf)
+}
+
+func (d *EnttecDMXUSBProController) OnDMXChange(c chan EnttecDMXUSBProApplicationMessage) {
+	if !d.readOnChange {
+		log.Fatalf("controller is not in READ ON CHANGE mode!")
+	}
+	ringbuff := [][]byte{
+		make([]byte, NUM_BYTES_WRAPPER+MAXIMUM_DATA_LENGTH),
+		make([]byte, NUM_BYTES_WRAPPER+MAXIMUM_DATA_LENGTH),
+	}
+	order := 0
+	for {
+		// Calculate order of buffers
+		order += 1
+		first := order
+		second := (order + 1) % 2
+		// Read into first buffer
+		n, err := d.port.Read(ringbuff[first])
+		if err != nil {
+			log.Panicf("error reading from serial, %v", err)
+		}
+		// Combine with the second (older) buffer
+		combined := append(ringbuff[first][0:n], ringbuff[second]...)
+		// Try to extract a valid message
+		msg, err := Extract(combined)
+		if err == nil {
+			c <- msg
+		}
+		time.Sleep(time.Millisecond * 30)
+	}
 }
