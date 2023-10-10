@@ -124,18 +124,30 @@ func TestFromBytesNoPayload(t *testing.T) {
 }
 
 func TestFromBytesBadMsgStart(t *testing.T) {
-	input := []byte{0xEE, 1, 0, 0, 0xE7}
-	_, err := FromBytes(input)
-	if err == nil {
-		t.Errorf("expected error, because messages must start with 0x7E")
+	for i := 0; i < 256; i++ {
+		input := []byte{byte(i), 1, 0, 0, 0xE7}
+		_, err := FromBytes(input)
+		if i == 0x7E {
+			// In this case it works
+			continue
+		}
+		if err == nil {
+			t.Errorf("expected error, because messages must start with 0x7E")
+		}
 	}
 }
 
 func TestFromBytesBadMsgEnd(t *testing.T) {
-	input := []byte{0x7E, 1, 0, 0, 0xEE}
-	_, err := FromBytes(input)
-	if err == nil {
-		t.Errorf("expected error, because messages must end with 0x7E")
+	for i := 0; i < 256; i++ {
+		input := []byte{0x7E, 1, 0, 0, byte(i)}
+		_, err := FromBytes(input)
+		if i == 0xE7 {
+			// In this case it works
+			continue
+		}
+		if err == nil {
+			t.Errorf("expected error, because messages must end with 0x7E")
+		}
 	}
 }
 
@@ -156,10 +168,12 @@ func TestFromBytesLabelTooSmall(t *testing.T) {
 }
 
 func TestFromBytesLabelTooBig(t *testing.T) {
-	input := []byte{0x7E, 12, 0, 0, 0xE7}
-	_, err := FromBytes(input)
-	if err == nil {
-		t.Errorf("expected error, because message label must be smaller than '12'")
+	for i := 12; i < 256; i++ {
+		input := []byte{0x7E, byte(i), 0, 0, 0xE7}
+		_, err := FromBytes(input)
+		if err == nil {
+			t.Errorf("expected error, because message label must be smaller than '12'")
+		}
 	}
 }
 
