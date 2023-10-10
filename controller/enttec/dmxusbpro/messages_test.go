@@ -200,3 +200,44 @@ func TestFromBytesIndicatedLengthMismatchMSB(t *testing.T) {
 		t.Errorf("expected error, because indicated datalength (256) mismatches actual length (0)")
 	}
 }
+
+func FuzzTestFromBytes(f *testing.F) {
+	testPayloads := [][]byte{
+		{},
+		{69},
+		{96, 69},
+		{66, 69, 96},
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	}
+	for _, v := range testPayloads {
+		f.Add(v)
+	}
+	f.Fuzz(func(t *testing.T, payload []byte) {
+		size := len(payload)
+		if size > 600 {
+			// As payloads > 600 will result in validation errors
+			return
+		}
+		// ************* SETUP *********************
+		input := make([]byte, size+5)
+		input[0] = 0x7E                   // START
+		input[1] = 9                      // LABEL
+		input[2] = byte(size & 0xFF)      // LSB
+		input[3] = byte(size >> 8 & 0xFF) // MSB
+		copy(input[4:size+4], payload)    // PAYLOAD
+		input[size+4] = 0xE7              // END
+		// ************* ACTION *********************
+		msg, err := FromBytes(input)
+		// ************* ASSERTIONS *********************
+		// should work
+		if err != nil {
+			t.Errorf("should not error, but got '%v'", err)
+		}
+		// Compare Payloads
+		for i := 0; i < len(payload); i++ {
+			if msg.payload[i] != payload[i] {
+				t.Errorf("expected payload byte[%d] to be '%X' but was %X", i, payload[i], msg.payload[i])
+			}
+		}
+	})
+}
