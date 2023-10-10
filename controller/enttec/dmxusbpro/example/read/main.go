@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/H3rby7/usbdmx-golang/controller/enttec/dmxusbpro"
+	"github.com/H3rby7/usbdmx-golang/controller/enttec/dmxusbpro/messages"
 	"github.com/tarm/serial"
 )
 
@@ -45,7 +46,7 @@ func main() {
 	}
 	handleCancel()
 	controller.ReadOnChangeOnly()
-	c := make(chan dmxusbpro.EnttecDMXUSBProApplicationMessage)
+	c := make(chan messages.EnttecDMXUSBProApplicationMessage)
 	go controller.OnDMXChange(c)
 	for msg := range c {
 		log.Printf("Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())

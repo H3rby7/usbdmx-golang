@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/H3rby7/usbdmx-golang/controller/enttec/dmxusbpro/messages"
 	"github.com/tarm/serial"
 )
 
@@ -100,7 +101,7 @@ func (d *EnttecDMXUSBProController) Commit() error {
 		return fmt.Errorf("not connected")
 	}
 
-	msg := EnttecDMXUSBProApplicationMessage{payload: d.channels, label: 6}
+	msg := messages.NewEnttecDMXUSBProApplicationMessage(6, d.channels)
 	packet, err := msg.ToBytes()
 	if err != nil {
 		return err
@@ -126,7 +127,7 @@ func (d *EnttecDMXUSBProController) ReadOnChangeOnly() error {
 	if !d.isReader {
 		return fmt.Errorf("controller is not in READ mode")
 	}
-	msg := EnttecDMXUSBProApplicationMessage{label: 8, payload: []byte{1}}
+	msg := messages.NewEnttecDMXUSBProApplicationMessage(8, []byte{1})
 	packet, err := msg.ToBytes()
 	if err != nil {
 		return err
@@ -147,13 +148,13 @@ func (d *EnttecDMXUSBProController) Read(buf []byte) (int, error) {
 	return d.port.Read(buf)
 }
 
-func (d *EnttecDMXUSBProController) OnDMXChange(c chan EnttecDMXUSBProApplicationMessage) {
+func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProApplicationMessage) {
 	if !d.readOnChange {
 		log.Fatalf("controller is not in READ ON CHANGE mode!")
 	}
 	ringbuff := [][]byte{
-		make([]byte, NUM_BYTES_WRAPPER+MAXIMUM_DATA_LENGTH),
-		make([]byte, NUM_BYTES_WRAPPER+MAXIMUM_DATA_LENGTH),
+		make([]byte, messages.NUM_BYTES_WRAPPER+messages.MAXIMUM_DATA_LENGTH),
+		make([]byte, messages.NUM_BYTES_WRAPPER+messages.MAXIMUM_DATA_LENGTH),
 	}
 	order := 0
 	for {

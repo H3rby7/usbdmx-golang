@@ -1,4 +1,4 @@
-package dmxusbpro
+package messages
 
 import (
 	"testing"
@@ -39,7 +39,7 @@ func TestToBytesLimitError(t *testing.T) {
 	}
 }
 
-// e.G.: go test -v --fuzz=Fuzz .\controller\enttec\dmxusbpro
+// e.G.: go test -v --fuzz=ToBytes .\controller\enttec\dmxusbpro\messages
 func FuzzTestToBytes(f *testing.F) {
 	// 7 sample payloads
 	testPayloads := [][]byte{
@@ -201,6 +201,7 @@ func TestFromBytesIndicatedLengthMismatchMSB(t *testing.T) {
 	}
 }
 
+// e.G.: go test -v --fuzz=FromBytes .\controller\enttec\dmxusbpro\messages
 func FuzzTestFromBytes(f *testing.F) {
 	testPayloads := [][]byte{
 		{},

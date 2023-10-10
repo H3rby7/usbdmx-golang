@@ -1,16 +1,20 @@
 package dmxusbpro
 
-import "fmt"
+import (
+	"fmt"
 
-func Extract(serialData []byte) (msg EnttecDMXUSBProApplicationMessage, err error) {
+	"github.com/H3rby7/usbdmx-golang/controller/enttec/dmxusbpro/messages"
+)
+
+func Extract(serialData []byte) (msg messages.EnttecDMXUSBProApplicationMessage, err error) {
 	// Find potential start/end points
 	potentialStarts := make([]int, 0, 1)
 	potentialEnds := make([]int, 0, 1)
 	for i, v := range serialData {
-		if v == MSG_DELIM_START {
+		if v == messages.MSG_DELIM_START {
 			potentialStarts = append(potentialStarts, i)
 		}
-		if v == MSG_DELIM_END {
+		if v == messages.MSG_DELIM_END {
 			potentialEnds = append(potentialEnds, i)
 		}
 	}
@@ -31,7 +35,7 @@ func Extract(serialData []byte) (msg EnttecDMXUSBProApplicationMessage, err erro
 				// no need to check when end < start
 				continue
 			}
-			msg, err := FromBytes(serialData[start : end+1])
+			msg, err := messages.FromBytes(serialData[start : end+1])
 			if err == nil {
 				return msg, err
 			}

@@ -101,13 +101,13 @@ func runAndAssertValid(t *testing.T, label byte, payload []byte, input []byte) {
 		t.Errorf("expected a valid message, but got error %v", err)
 	}
 	// check Label
-	if msg.label != label {
-		t.Errorf("expected label to be %X, but was %X", label, msg.label)
+	if msg.GetLabel() != label {
+		t.Errorf("expected label to be %X, but was %X", label, msg.GetLabel())
 	}
 	// Compare Payloads
 	for i := 0; i < len(payload); i++ {
-		if msg.payload[i] != payload[i] {
-			t.Errorf("expected payload byte[%d] to be '%X' but was %X", i, payload[i], msg.payload[i])
+		if msg.GetPayload()[i] != payload[i] {
+			t.Errorf("expected payload byte[%d] to be '%X' but was %X", i, payload[i], msg.GetPayload()[i])
 		}
 	}
 }

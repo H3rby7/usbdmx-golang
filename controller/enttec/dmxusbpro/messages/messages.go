@@ -1,6 +1,9 @@
-package dmxusbpro
+package messages
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 const (
 	// "Start of Message" delimiter
@@ -38,6 +41,20 @@ type EnttecDMXUSBProApplicationMessage struct {
 	payload []byte
 	// Label to identify the type of message
 	label byte
+}
+
+func NewEnttecDMXUSBProApplicationMessage(label byte, payload []byte) EnttecDMXUSBProApplicationMessage {
+	dataLength := len(payload)
+	if dataLength > MAXIMUM_DATA_LENGTH {
+		log.Panicf("maximum data length [%d bytes] exceeded, actually was [%d]", MAXIMUM_DATA_LENGTH, dataLength)
+	}
+	if label < SMALLEST_LABEL_INDEX {
+		log.Panicf("message label must be at least %d, but is %d", SMALLEST_LABEL_INDEX, label)
+	}
+	if label > BIGGEST_LABEL_INDEX {
+		log.Panicf("message label must be at maximum %d, but is %d", BIGGEST_LABEL_INDEX, label)
+	}
+	return EnttecDMXUSBProApplicationMessage{label: label, payload: payload}
 }
 
 func (msg *EnttecDMXUSBProApplicationMessage) GetLabel() byte {
