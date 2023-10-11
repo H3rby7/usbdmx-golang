@@ -118,7 +118,7 @@ func (d *EnttecDMXUSBProController) Commit() error {
 		return fmt.Errorf("controller is not in WRITE mode")
 	}
 	msg := messages.NewEnttecDMXUSBProApplicationMessage(messages.LABEL_OUTPUT_ONLY_SEND_DMX_PACKET_REQUESTS, d.channels)
-	return d.write(msg)
+	return d.writeMessage(msg)
 }
 
 // Set all values of the staged channels to '0'
@@ -131,16 +131,13 @@ func (d *EnttecDMXUSBProController) ClearStage() {
 /*
 Helper function to check for connection, log and transform
 */
-func (d *EnttecDMXUSBProController) write(msg messages.EnttecDMXUSBProApplicationMessage) error {
-	if d.port == nil || !d.isConnected {
-		return fmt.Errorf("not connected")
-	}
+func (d *EnttecDMXUSBProController) writeMessage(msg messages.EnttecDMXUSBProApplicationMessage) error {
 	packet, err := msg.ToBytes()
 	if err != nil {
 		return err
 	}
 	log.Printf("Writing \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
-	_, err = d.port.Write(packet)
+	_, err = d.Write(packet)
 	return err
 }
 
@@ -159,7 +156,7 @@ func (d *EnttecDMXUSBProController) SwitchReadMode(changesOnly byte) error {
 		return fmt.Errorf("controller is not in READ mode")
 	}
 	msg := messages.NewEnttecDMXUSBProApplicationMessage(messages.LABEL_RECEIVE_DMX_ON_CHANGE, []byte{changesOnly})
-	if err := d.write(msg); err != nil {
+	if err := d.writeMessage(msg); err != nil {
 		return err
 	}
 	d.readOnChange = true
@@ -177,6 +174,16 @@ func (d *EnttecDMXUSBProController) Read(buf []byte) (int, error) {
 		return -1, fmt.Errorf("controller is not in READ mode")
 	}
 	return d.port.Read(buf)
+}
+
+/*
+Expose serial write to be used directly
+*/
+func (d *EnttecDMXUSBProController) Write(buf []byte) (int, error) {
+	if d.port == nil || !d.isConnected {
+		return -1, fmt.Errorf("not connected")
+	}
+	return d.port.Write(buf)
 }
 
 /*

@@ -1,6 +1,6 @@
 package dmxcontroller
 
-// Generic interface for all USB DMX controllers
+// Generic interface for DMX controllers
 type DMXController interface {
 	// Connect the device
 	Connect() (err error)
@@ -8,14 +8,16 @@ type DMXController interface {
 	Disconnect() (err error)
 	// Returns the device name
 	GetName() string
-	// Stage DMX value
-	Stage(channel int16, value byte) error
 	// Read raw from DMX
 	Read(buf []byte) (int, error)
-	// Get staged/last read DMX values
-	GetStage() []byte
+	// Write raw to DMX
+	Write(buf []byte) (int, error)
+	// Stage DMX value
+	Stage(channel int16, value byte) error
 	// Commit the staged values to the DMX network
 	Commit() error
+	// Get staged/last read DMX values
+	GetStage() []byte
 	// Clear all staged values to 0
 	ClearStage()
 }
