@@ -14,6 +14,7 @@ import (
 )
 
 var controller dmxcontroller.DMXController
+var isRunning bool
 
 func handleCancel() {
 	c := make(chan os.Signal, 1)
@@ -26,11 +27,14 @@ func handleCancel() {
 	)
 	go func() {
 		for range c {
-			controller.Clear()
+			log.Printf("Stopping...")
+			isRunning = false
+			controller.ClearStage()
 			controller.Commit()
 			controller.Disconnect()
 			break
 		}
+		log.Printf("Finished.")
 	}()
 }
 
@@ -47,6 +51,7 @@ func main() {
 	if err := controller.Connect(); err != nil {
 		log.Fatalf("Failed to connect DMX Controller: %s", err)
 	}
+	isRunning = true
 	handleCancel()
 
 	// Open shutter
@@ -66,10 +71,8 @@ func main() {
 	// Channels for RGB start at this Channel.
 	rgbStartChannel := int16(6)
 
-	// Create a loop that will cycle through all of the colours defined in the "colours"
-	// array and set the channels on our controller. Once the channels have been set their
-	// values are ouptut to stdout. Wait 2 seconds between updating our new channels
-	for i := 0; true; i++ {
+	// Constantly change
+	for i := 0; isRunning; i++ {
 		colour := colours[i%len(colours)]
 		controller.Stage(rgbStartChannel, colour[0])
 		controller.Stage(rgbStartChannel+1, colour[1])

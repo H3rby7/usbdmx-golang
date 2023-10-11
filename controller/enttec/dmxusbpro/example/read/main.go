@@ -45,7 +45,7 @@ func main() {
 		log.Fatalf("Failed to connect DMX Controller: %s", err)
 	}
 	handleCancel()
-	controller.ReadOnChangeOnly()
+	controller.SwitchReadMode(1)
 	c := make(chan messages.EnttecDMXUSBProApplicationMessage)
 	go controller.OnDMXChange(c)
 	for msg := range c {

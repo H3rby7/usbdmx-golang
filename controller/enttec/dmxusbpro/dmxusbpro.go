@@ -16,16 +16,19 @@ const (
 	DMX_DATA_LENGTH = DMX_MAX_CHANNELS + 1
 )
 
-// Controller for Enttec DMX USB Pro device to handle comms
+// Controller for Enttec DMX USB Pro device to handle communication
 type EnttecDMXUSBProController struct {
 	// Holds DMX data, as DMX starts with channel '1' the index '0' is unused.
 	channels []byte
 
-	isWriter     bool
-	isReader     bool
+	isWriter bool
+	isReader bool
+	// Is the widget in 'only read changes'-mode (as opposed to read everything)
 	readOnChange bool
-	conf         *serial.Config
-	port         *serial.Port
+
+	isConnected bool
+	conf        *serial.Config
+	port        *serial.Port
 }
 
 // Helper function for creating a new DMX USB PRO controller
@@ -37,38 +40,50 @@ func NewEnttecDMXUSBProController(conf *serial.Config, isWriter bool) *EnttecDMX
 	d.isWriter = isWriter
 	d.isReader = !isWriter
 	d.readOnChange = false
+	d.isConnected = false
 
 	return d
 }
 
+/*
+	Returns the name used for opening the connection
+
+e.g. "COM4" or "/dev/tty.usbserial"
+*/
 func (d *EnttecDMXUSBProController) GetName() string {
 	return d.conf.Name
 }
 
-// Connect handles connection to a Enttec DMX USB Pro controller
+/*
+	Open the serial connection to Enttec DMX USB PRO Widget
+
+Succeeded if no error is returned
+*/
 func (d *EnttecDMXUSBProController) Connect() error {
 	s, err := serial.OpenPort(d.conf)
 	if err != nil {
 		return err
 	}
 	d.port = s
-
+	d.isConnected = true
 	return nil
 }
 
+/*
+	Close the serial connection to Enttec DMX USB PRO Widget
+
+Succeeded if no error is returned
+*/
 func (d *EnttecDMXUSBProController) Disconnect() error {
 	if d.port == nil {
 		log.Printf("Not connected.")
 		return nil
 	}
-
+	d.isConnected = false
 	return d.port.Close()
 }
 
-// Gets a copy of all of the channels of a universe
-// Returns our internal state of the channels
-// In write mode that means whatever we have set so far
-// In read mode that means whatever we read last.
+// Gets a copy of all staged channel values
 func (d *EnttecDMXUSBProController) GetStage() []byte {
 	channels := make([]byte, len(d.channels))
 
@@ -77,81 +92,109 @@ func (d *EnttecDMXUSBProController) GetStage() []byte {
 	return channels
 }
 
-func (d *EnttecDMXUSBProController) Stage(index int16, data byte) error {
+/*
+Prepare a channel to be changed to the given value
+
+Note: This does not send out the changes, you must call the 'Commit' method to apply the stage live.
+*/
+func (d *EnttecDMXUSBProController) Stage(channel int16, value byte) error {
 	if !d.isWriter {
 		return fmt.Errorf("controller is not in WRITE mode")
 	}
-
-	if index < 1 || index > DMX_MAX_CHANNELS {
-		return fmt.Errorf("index %d out of range, must be between 1 and %d", index, DMX_MAX_CHANNELS)
+	if channel < 1 || channel > DMX_MAX_CHANNELS {
+		return fmt.Errorf("index %d out of range, must be between 1 and %d", channel, DMX_MAX_CHANNELS)
 	}
-
-	d.channels[index] = data
-
+	d.channels[channel] = value
 	return nil
 }
 
+/*
+Apply the 'staged' values to go live.
+
+Note: This does not clear the Stage!
+*/
 func (d *EnttecDMXUSBProController) Commit() error {
-
 	if !d.isWriter {
 		return fmt.Errorf("controller is not in WRITE mode")
 	}
-
-	if d.port == nil {
-		return fmt.Errorf("not connected")
-	}
-
 	msg := messages.NewEnttecDMXUSBProApplicationMessage(messages.LABEL_OUTPUT_ONLY_SEND_DMX_PACKET_REQUESTS, d.channels)
-	packet, err := msg.ToBytes()
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Writing \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
-
-	_, err = d.port.Write(packet)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return d.write(msg)
 }
 
-func (d *EnttecDMXUSBProController) Clear() {
+// Set all values of the staged channels to '0'
+func (d *EnttecDMXUSBProController) ClearStage() {
 	for i := range d.channels {
 		d.channels[i] = 0
 	}
 }
 
-func (d *EnttecDMXUSBProController) ReadOnChangeOnly() error {
-	if !d.isReader {
-		return fmt.Errorf("controller is not in READ mode")
+/*
+Helper function to check for connection, log and transform
+*/
+func (d *EnttecDMXUSBProController) write(msg messages.EnttecDMXUSBProApplicationMessage) error {
+	if d.port == nil || !d.isConnected {
+		return fmt.Errorf("not connected")
 	}
-	msg := messages.NewEnttecDMXUSBProApplicationMessage(messages.LABEL_RECEIVE_DMX_ON_CHANGE, []byte{1})
 	packet, err := msg.ToBytes()
 	if err != nil {
 		return err
 	}
-	log.Printf("Writing %v", packet)
+	log.Printf("Writing \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
 	_, err = d.port.Write(packet)
-	if err != nil {
+	return err
+}
+
+/*
+Change the receive mode of the widget.
+
+Setting it to '0' will allow reading always and reads everything
+
+Setting it to '1' will only read when the data changes and only reads the changeset (label=9)
+*/
+func (d *EnttecDMXUSBProController) SwitchReadMode(changesOnly byte) error {
+	if changesOnly > 1 {
+		log.Panicf("invalid value, only 0 and 1 are allowed, but got '%d'", changesOnly)
+	}
+	if !d.isReader {
+		return fmt.Errorf("controller is not in READ mode")
+	}
+	msg := messages.NewEnttecDMXUSBProApplicationMessage(messages.LABEL_RECEIVE_DMX_ON_CHANGE, []byte{changesOnly})
+	if err := d.write(msg); err != nil {
 		return err
 	}
 	d.readOnChange = true
 	return nil
 }
 
+/*
+Expose serial read to be used directly
+*/
 func (d *EnttecDMXUSBProController) Read(buf []byte) (int, error) {
+	if d.port == nil || !d.isConnected {
+		return -1, fmt.Errorf("not connected")
+	}
 	if !d.isReader {
 		return -1, fmt.Errorf("controller is not in READ mode")
 	}
 	return d.port.Read(buf)
 }
 
+/*
+Start routine to read from DMX and get the results back via channel
+
+Example useage:
+
+	controller.SwitchReadMode(1) // read changes only
+	c := make(chan messages.EnttecDMXUSBProApplicationMessage) // create channel
+	go controller.OnDMXChange(c) // start routine
+	for msg := range c { ... } // handle incoming data
+*/
 func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProApplicationMessage) {
 	if !d.readOnChange {
 		log.Fatalf("controller is not in READ ON CHANGE mode!")
 	}
+	// Create a ring buffer that can store two reads, as we might get unlucky and read a start-byte just at the end of our current read.
+	// We will switch the buffer to read into with every iteration. The other one will contain the last read, so we can reliably detect messages.
 	ringbuff := [][]byte{
 		make([]byte, messages.NUM_BYTES_WRAPPER+messages.MAXIMUM_DATA_LENGTH),
 		make([]byte, messages.NUM_BYTES_WRAPPER+messages.MAXIMUM_DATA_LENGTH),
@@ -160,18 +203,19 @@ func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProA
 	for {
 		// Calculate order of buffers
 		order = (order + 1) % 2
-		first := order
-		second := (order + 1) % 2
-		// Read into first buffer
-		n, err := d.port.Read(ringbuff[first])
+		bufNow := order
+		bufOld := (order + 1) % 2
+		// Read into current first buffer
+		n, err := d.Read(ringbuff[bufNow])
 		if err != nil {
 			log.Panicf("error reading from serial, %v", err)
 		}
-		// Combine with the second (older) buffer
-		combined := append(ringbuff[first][0:n], ringbuff[second]...)
+		// Combine with the older buffer
+		combined := append(ringbuff[bufNow][0:n], ringbuff[bufOld]...)
 		// Try to extract a valid message
 		msg, err := Extract(combined)
 		if err == nil {
+			// No error means there is a message
 			c <- msg
 		}
 		time.Sleep(time.Millisecond * 30)

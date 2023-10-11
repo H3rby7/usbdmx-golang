@@ -17,5 +17,5 @@ type DMXController interface {
 	// Commit the staged values to the DMX network
 	Commit() error
 	// Clear all staged values to 0
-	Clear()
+	ClearStage()
 }
