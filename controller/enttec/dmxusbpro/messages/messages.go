@@ -31,7 +31,7 @@ const (
 	MSG_DATA_LENGTH_MSB_INDEX = 3
 )
 
-// Controller for Enttec DMX USB Pro device to handle comms
+// Message as used by Enttec USB DMX Pro Widget
 type EnttecDMXUSBProApplicationMessage struct {
 	// Message Content (max Size 600)
 	payload []byte
@@ -39,6 +39,7 @@ type EnttecDMXUSBProApplicationMessage struct {
 	label byte
 }
 
+// Helper function to create a new Message
 func NewEnttecDMXUSBProApplicationMessage(label byte, payload []byte) EnttecDMXUSBProApplicationMessage {
 	dataLength := len(payload)
 	if dataLength > MAXIMUM_DATA_LENGTH {
@@ -53,14 +54,18 @@ func NewEnttecDMXUSBProApplicationMessage(label byte, payload []byte) EnttecDMXU
 	return EnttecDMXUSBProApplicationMessage{label: label, payload: payload}
 }
 
+// Returns the message's label.
+// See the API docs or 'labels.go' for explanations
 func (msg *EnttecDMXUSBProApplicationMessage) GetLabel() byte {
 	return msg.label
 }
 
+// Return a copy of the message's payload
 func (msg *EnttecDMXUSBProApplicationMessage) GetPayload() []byte {
 	return msg.payload[:]
 }
 
+// Convert the message into byte format that can be send to the widget.
 func (msg *EnttecDMXUSBProApplicationMessage) ToBytes() ([]byte, error) {
 	dataLength := len(msg.payload)
 	if dataLength > MAXIMUM_DATA_LENGTH {
@@ -88,6 +93,7 @@ func (msg *EnttecDMXUSBProApplicationMessage) ToBytes() ([]byte, error) {
 	return packet, nil
 }
 
+// Create from the byte structure, if possible
 func FromBytes(raw []byte) (msg EnttecDMXUSBProApplicationMessage, err error) {
 	if err = validateSchema(raw); err != nil {
 		return
@@ -104,8 +110,11 @@ func FromBytes(raw []byte) (msg EnttecDMXUSBProApplicationMessage, err error) {
 	return
 }
 
-// Validate the bytes according to the message definition.
-// Return error if any validation fails, else nil.
+/*
+	Validate the bytes according to the message definition.
+
+Return error if any validation fails, else nil.
+*/
 func validateSchema(raw []byte) error {
 	size := len(raw)
 	if size < NUM_BYTES_WRAPPER {
@@ -130,8 +139,11 @@ func validateSchema(raw []byte) error {
 	return nil
 }
 
-// Validate the bytes according to the message definition.
-// Return error if any validation fails, else nil.
+/*
+	Validate the indicated payload size matches the actual size
+
+Return error if any validation fails, else nil.
+*/
 func validateSize(raw []byte) error {
 	actualPayloadSize := len(raw) - NUM_BYTES_WRAPPER
 	lsb := raw[MSG_DATA_LENGTH_LSB_INDEX]
