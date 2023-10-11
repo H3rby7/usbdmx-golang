@@ -117,7 +117,7 @@ func (d *EnttecDMXUSBProController) Commit() error {
 	if !d.isWriter {
 		return fmt.Errorf("controller is not in WRITE mode")
 	}
-	msg := messages.NewEnttecDMXUSBProApplicationMessage(messages.LABEL_OUTPUT_ONLY_SEND_DMX_PACKET_REQUESTS, d.channels)
+	msg := messages.NewEnttecDMXUSBProApplicationMessage(messages.LABEL_OUTPUT_ONLY_SEND_DMX_PACKET_REQUEST, d.channels)
 	return d.writeMessage(msg)
 }
 
