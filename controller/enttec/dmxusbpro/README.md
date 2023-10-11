@@ -3,10 +3,33 @@
 Some Notes from the Enttec DMX USB Pro - API Document @v1.44 
 
 - [Enttec USB DMX Pro](#enttec-usb-dmx-pro)
+  - [Examples](#examples)
+    - [Write](#write)
+    - [Read](#read)
   - [IN and OUT](#in-and-out)
   - [Message-Format](#message-format)
     - [Labels](#labels)
 - [Glossary](#glossary)
+
+## Examples
+
+### Write
+
+Write DMX data using the serial device located at `COM5`.
+
+  go run ./example/write/main.go --name=COM5
+
+[Source](./example/write/main.go)
+
+*Note: If testing with a specific fixture, make sure to adapt the example*
+
+### Read
+
+Read DMX data using the serial device located at `COM6`.
+
+  go run ./example/read/main.go --name=COM6
+
+[Source](./example/read/main.go)
 
 ## IN and OUT
 
@@ -27,6 +50,8 @@ Size in Bytes | Description
 *[data_length]* | Payload bytes (byte at index `1` contains channel `1`. So byte `0` is unused)
 1 | End of message delimiter, 0x7E.
 
+For implementation see [here](./messages/messages.go)
+
 ### Labels
 
 Label # | Title (in API description)
@@ -42,6 +67,8 @@ Label # | Title (in API description)
 9 | Received DMX Change Of State Packet
 10 | Get Widget Serial Number (Request/Reply)
 11 | Send RDM Discovery Request
+
+For implementation see [here](./messages/labels.go)
 
 # Glossary
 

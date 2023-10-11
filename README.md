@@ -8,7 +8,7 @@ Library to read/write to/from DMX using USB.
 
 ## Quick Start
 
-See [Examples](./enttecdmxusbpro/example/)
+See [Examples](./controller/enttec/dmxusbpro/README.md#examples)
 
 ## Contributors
 
