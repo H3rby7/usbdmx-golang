@@ -1,6 +1,8 @@
 # Enttec USB DMX Pro
 
-Some Notes from the Enttec DMX USB Pro - API Document @v1.44 
+Some Notes from the Enttec DMX USB Pro - API Document @v1.44
+
+For latest version check their [website](https://www.enttec.com/product/dmx-usb-interfaces/dmx-usb-pro/)
 
 - [Enttec USB DMX Pro](#enttec-usb-dmx-pro)
   - [Examples](#examples)
