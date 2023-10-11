@@ -50,9 +50,10 @@ func main() {
 	go controller.OnDMXChange(c)
 	for msg := range c {
 		cs, err := messages.ToChangeSet(msg)
-		log.Printf("Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
-		if err == nil {
-			log.Printf("Read \t%v", cs)
+		if err != nil {
+			log.Printf("Could not convert to changeset, but read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
+		} else {
+			log.Printf("Changeset is \t%v", cs)
 		}
 	}
 }
