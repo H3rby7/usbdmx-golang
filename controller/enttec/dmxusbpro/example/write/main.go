@@ -8,12 +8,12 @@ import (
 	"syscall"
 	"time"
 
-	dmxcontroller "github.com/H3rby7/usbdmx-golang/controller"
+	usbdmxgolang "github.com/H3rby7/usbdmx-golang"
 	"github.com/H3rby7/usbdmx-golang/controller/enttec/dmxusbpro"
 	"github.com/tarm/serial"
 )
 
-var controller dmxcontroller.DMXController
+var controller usbdmxgolang.DMXController
 var isRunning bool
 
 func handleCancel() {

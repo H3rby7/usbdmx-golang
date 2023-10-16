@@ -1,6 +1,5 @@
-package dmxcontroller
+package usbdmxgolang
 
-// Generic interface for DMX controllers
 type DMXController interface {
 	// Connect the device
 	Connect() (err error)
