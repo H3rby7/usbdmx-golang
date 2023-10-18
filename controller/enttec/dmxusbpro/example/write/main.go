@@ -47,7 +47,7 @@ func main() {
 	config := &serial.Config{Name: *name, Baud: *baud}
 
 	// Create a controller and connect to it
-	controller = dmxusbpro.NewEnttecDMXUSBProController(config, true)
+	controller = dmxusbpro.NewEnttecDMXUSBProController(config, 16, true)
 	if err := controller.Connect(); err != nil {
 		log.Fatalf("Failed to connect DMX Controller: %s", err)
 	}

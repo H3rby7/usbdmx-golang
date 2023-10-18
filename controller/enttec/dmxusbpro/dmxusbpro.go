@@ -9,13 +9,6 @@ import (
 	"github.com/tarm/serial"
 )
 
-const (
-	// Maximum DMX channels we can control (fixed size in this implementation)
-	DMX_MAX_CHANNELS = 16
-	// Data length = Channels + 1 as DMX works 1-indexed [not 0-indexed]
-	DMX_DATA_LENGTH = DMX_MAX_CHANNELS + 1
-)
-
 // Controller for Enttec DMX USB Pro device to handle communication
 type EnttecDMXUSBProController struct {
 	// Holds DMX data, as DMX starts with channel '1' the index '0' is unused.
@@ -32,9 +25,9 @@ type EnttecDMXUSBProController struct {
 }
 
 // Helper function for creating a new DMX USB PRO controller
-func NewEnttecDMXUSBProController(conf *serial.Config, isWriter bool) *EnttecDMXUSBProController {
+func NewEnttecDMXUSBProController(conf *serial.Config, dmxChannelCount int, isWriter bool) *EnttecDMXUSBProController {
 	d := &EnttecDMXUSBProController{}
-	d.channels = make([]byte, DMX_DATA_LENGTH)
+	d.channels = make([]byte, dmxChannelCount+1)
 
 	d.conf = conf
 	d.isWriter = isWriter
@@ -101,8 +94,9 @@ func (d *EnttecDMXUSBProController) Stage(channel int16, value byte) error {
 	if !d.isWriter {
 		return fmt.Errorf("controller is not in WRITE mode")
 	}
-	if channel < 1 || channel > DMX_MAX_CHANNELS {
-		return fmt.Errorf("index %d out of range, must be between 1 and %d", channel, DMX_MAX_CHANNELS)
+	highestChannel := int16(len(d.channels))
+	if channel < 1 || channel > highestChannel {
+		return fmt.Errorf("index %d out of range, must be between 1 and %d", channel, highestChannel)
 	}
 	d.channels[channel] = value
 	return nil
