@@ -47,7 +47,7 @@ func main() {
 	handleCancel()
 	controller.SwitchReadMode(1)
 	c := make(chan messages.EnttecDMXUSBProApplicationMessage)
-	go controller.OnDMXChange(c)
+	go controller.OnDMXChange(c, 30)
 	for msg := range c {
 		cs, err := messages.ToChangeSet(msg)
 		if err != nil {

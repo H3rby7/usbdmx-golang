@@ -190,7 +190,7 @@ Example useage:
 	go controller.OnDMXChange(c) // start routine
 	for msg := range c { ... } // handle incoming data
 */
-func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProApplicationMessage) {
+func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProApplicationMessage, readIntervalMS int) {
 	if !d.readOnChange {
 		log.Fatalf("controller is not in READ ON CHANGE mode!")
 	}
@@ -219,6 +219,6 @@ func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProA
 			// No error means there is a message
 			c <- msg
 		}
-		time.Sleep(time.Millisecond * 30)
+		time.Sleep(time.Millisecond * time.Duration(readIntervalMS))
 	}
 }
