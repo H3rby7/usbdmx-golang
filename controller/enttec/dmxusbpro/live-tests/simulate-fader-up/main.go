@@ -19,15 +19,21 @@ var isRunning bool
 var c chan os.Signal
 
 func main() {
+	// Make logger print microseconds
+	log.SetFlags(log.Lmicroseconds)
+	// Set up flags
 	baud := flag.Int("baud", 57600, "Baudrate for the devices")
 	readerName := flag.String("reader", "", "Input interface (e.g. COM4 OR /dev/tty1.usbserial)")
 	writerName := flag.String("writer", "", "Output interface (e.g. COM5 OR /dev/tty2.usbserial)")
-	readInterval := flag.Int("read-interval", 30, "Interval between reads in MS")
-	writeInterval := flag.Int("write-interval", 30, "Interval between writes in MS")
+	readInterval := flag.Int("read-interval", 30, "Interval between reads in millis")
+	writeInterval := flag.Int("write-interval", 30, "Interval between writes in millis")
+	changesOnly := flag.Bool("changes-only", false, "Read, using changes only")
 	flag.Parse()
-	go read(&serial.Config{Name: *readerName, Baud: *baud}, *readInterval)
+	// Run the program
+	go read(&serial.Config{Name: *readerName, Baud: *baud}, *readInterval, *changesOnly)
 	go fadeUp(&serial.Config{Name: *writerName, Baud: *baud}, *writeInterval)
 
+	// Wait for cancel
 	c = make(chan os.Signal, 1)
 	signal.Notify(c,
 		// https://www.gnu.org/software/libc/manual/html_node/Termination-Signals.html
@@ -48,22 +54,35 @@ func main() {
 	log.Printf("Finished.")
 }
 
-func read(config *serial.Config, interval int) {
+func read(config *serial.Config, interval int, changesOnly bool) {
 	// Create a controller and connect to it
 	readController = dmxusbpro.NewEnttecDMXUSBProController(config, 4, false)
 	if err := readController.Connect(); err != nil {
 		log.Fatalf("READER\tFailed to connect DMX Controller: %s", err)
 	}
 	// readController.SetLogVerbosity(1)
-	readController.SwitchReadMode(0)
+	if changesOnly {
+		readController.SwitchReadMode(1)
+	} else {
+		readController.SwitchReadMode(0)
+	}
 	c := make(chan messages.EnttecDMXUSBProApplicationMessage)
 	go readController.OnDMXChange(c, interval)
 	for msg := range c {
-		cs, err := messages.ToDMXArray(msg)
-		if err != nil {
-			log.Printf("READER\tCould not convert to changeset, but read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
+		if changesOnly {
+			cs, err := messages.ToChangeSet(msg)
+			if err != nil {
+				log.Printf("READER\tCould not convert to changeset, but read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
+			} else {
+				log.Printf("READER\tChangeset is:\t%v", cs)
+			}
 		} else {
-			log.Printf("READER\tDMX values are:\t%v", cs)
+			arr, err := messages.ToDMXArray(msg)
+			if err != nil {
+				log.Printf("READER\tCould not convert to array, but read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
+			} else {
+				log.Printf("READER\tDMX values are:\t%v", arr)
+			}
 		}
 	}
 }
