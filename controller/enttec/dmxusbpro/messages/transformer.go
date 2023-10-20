@@ -20,10 +20,10 @@ array
 func ToChangeSet(msg EnttecDMXUSBProApplicationMessage) (map[int]byte, error) {
 	m := make(map[int]byte)
 	if msg.label != LABEL_RECEIVED_DMX_CHANGE_OF_STATE_PACKET {
-		return nil, fmt.Errorf("wrong label, expected '%d', but got '%d", LABEL_RECEIVED_DMX_CHANGE_OF_STATE_PACKET, msg.label)
+		return nil, fmt.Errorf("wrong label, expected '%d', but got '%d'", LABEL_RECEIVED_DMX_CHANGE_OF_STATE_PACKET, msg.label)
 	}
 	if len(msg.payload) < 7 {
-		return nil, fmt.Errorf("payload must be at least '%d' bytes, but was '%d", 7, len(msg.payload))
+		return nil, fmt.Errorf("payload must be at least '%d' bytes, but was '%d'", 7, len(msg.payload))
 	}
 	// START GOLANG implementation of pseudo-code in API docs
 	startChangedByteNumber := int(msg.payload[0])
@@ -38,6 +38,31 @@ func ToChangeSet(msg EnttecDMXUSBProApplicationMessage) (map[int]byte, error) {
 	}
 	// END GOLANG implementation of pseudo-code in API docs
 	return m, nil
+}
+
+/*
+	Convert a message according to the 'Received DMX Packet' structure.
+
+Message must have label '5' and at least 1 byte
+
+0    - DMX receive status Bit 0: 0=No error,1=Widget receive queue overflowed. Bit 1: 0=No error,1=Widget receive overrun occurred
+
+1 - 513  - Received DMX data beginning with the start code. Get Size from overall msg size.
+*/
+func ToDMXArray(msg EnttecDMXUSBProApplicationMessage) ([]byte, error) {
+	if msg.label != LABEL_RECEIVED_DMX_PACKET {
+		return nil, fmt.Errorf("wrong label, expected '%d', but got '%d'", LABEL_RECEIVED_DMX_PACKET, msg.label)
+	}
+	if len(msg.payload) < 2 {
+		return nil, fmt.Errorf("payload must be at least '%d' bytes, but was '%d'", 2, len(msg.payload))
+	}
+	if msg.payload[0] != 0 {
+		return nil, fmt.Errorf("DMX receive status (payload[0]) should be '%d', but was '%d'", 0, msg.payload[0])
+	}
+	if msg.payload[1] != 0 {
+		return nil, fmt.Errorf("DMX start byte (payload[1]) should be '%d', but was '%d'", 0, msg.payload[1])
+	}
+	return msg.payload[1:], nil
 }
 
 // MSBs first

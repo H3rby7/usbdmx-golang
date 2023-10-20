@@ -44,37 +44,37 @@ func main() {
 	log.Printf("... clearing DMX output (1 second) ...")
 	time.Sleep(time.Second * 1)
 	writeController.Disconnect()
-	log.Printf("... reading for 3 more seconds ...")
-	time.Sleep(time.Second * 3)
 	readController.Disconnect()
 	log.Printf("Finished.")
 }
 
 func read(config *serial.Config, interval int) {
 	// Create a controller and connect to it
-	readController = dmxusbpro.NewEnttecDMXUSBProController(config, 16, false)
+	readController = dmxusbpro.NewEnttecDMXUSBProController(config, 4, false)
 	if err := readController.Connect(); err != nil {
 		log.Fatalf("READER\tFailed to connect DMX Controller: %s", err)
 	}
-	readController.SwitchReadMode(1)
+	readController.SetLogVerbosity(2)
+	readController.SwitchReadMode(0)
 	c := make(chan messages.EnttecDMXUSBProApplicationMessage)
 	go readController.OnDMXChange(c, interval)
 	for msg := range c {
-		cs, err := messages.ToChangeSet(msg)
+		cs, err := messages.ToDMXArray(msg)
 		if err != nil {
 			log.Printf("READER\tCould not convert to changeset, but read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
 		} else {
-			log.Printf("READER\tChangeset is: \t\t%v", cs)
+			log.Printf("READER\tDMX values are:\t%v", cs)
 		}
 	}
 }
 
 func fadeUp(config *serial.Config, interval int) {
 	// Create a controller and connect to it
-	writeController = dmxusbpro.NewEnttecDMXUSBProController(config, 16, true)
+	writeController = dmxusbpro.NewEnttecDMXUSBProController(config, 4, true)
 	if err := writeController.Connect(); err != nil {
 		log.Fatalf("WRITER\tFailed to connect DMX Controller: %s", err)
 	}
+	writeController.SetLogVerbosity(2)
 	isRunning = true
 	// The DMX values for the fader
 	group := []byte{240, 120, 60}
@@ -91,7 +91,7 @@ func fadeUp(config *serial.Config, interval int) {
 		writeController.Stage(2, vals[2])
 		writeController.Stage(3, vals[3])
 
-		log.Printf("WRITER\tfader values are: \t%v", vals[1:])
+		log.Printf("WRITER\tDMX values are:\t%v", vals)
 
 		if err := writeController.Commit(); err != nil {
 			log.Fatalf("WRITER\tFailed to commit output: %s", err)
