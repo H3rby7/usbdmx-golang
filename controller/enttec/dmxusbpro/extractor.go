@@ -28,6 +28,17 @@ func Extract(serialData []byte) (msg messages.EnttecDMXUSBProApplicationMessage,
 		err = fmt.Errorf("could not detect a message end")
 		return
 	}
+	// TODO: We tend to run late by one message!
+	/*
+		16:53:25.608119 EDUP: Read 1 bytes:     [126]
+		16:53:25.630279 EDUP: Read 24 bytes:    [9 8 0 0 6 0 0 0 0 108 54 231 126 9 7 0 0 8 0 0 0 0 27 231]
+		16:53:25.632095 READER  Changeset is:   map[1:108 2:54]
+																														(reads first msg, but second one would already be there)
+		16:53:25.646188 EDUP: Read 13 bytes:    [126 9 8 0 0 6 0 0 0 0 110 55 231]
+		16:53:25.646593 READER  Changeset is:   map[3:27] ()
+																														(reads second msg of last read, but third one would already be there)
+		16:53:25.663382 READER  Changeset is:   map[1:110 2:55]
+	*/
 	// Check if a combination of Start/End Point gives us a valid DMX message.
 	for _, start := range potentialStarts {
 		for _, end := range potentialEnds {
