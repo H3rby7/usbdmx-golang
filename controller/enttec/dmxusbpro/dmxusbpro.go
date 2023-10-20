@@ -172,7 +172,7 @@ func (d *EnttecDMXUSBProController) Read(buf []byte) (int, error) {
 		return -1, d.errorf("controller is not in READ mode")
 	}
 	n, err := d.port.Read(buf)
-	d.printf(2, "Read %d bytes:\t%v", n, buf)
+	d.printf(2, "Read %d bytes:\t%v", n, buf[0:n])
 	return n, err
 }
 
@@ -184,7 +184,7 @@ func (d *EnttecDMXUSBProController) Write(buf []byte) (int, error) {
 		return -1, fmt.Errorf("not connected")
 	}
 	n, err := d.port.Write(buf)
-	d.printf(2, "Wrote %d bytes:\t%v", n, buf)
+	d.printf(2, "Wrote %d bytes:\t%v", n, buf[0:n])
 	return n, err
 }
 
@@ -223,7 +223,7 @@ func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProA
 		// Store how many bytes we have read
 		buffLen[bufNow] = n
 		// Combine with the older buffer, respecting how many bytes have been read "now" and "old"
-		combined := append(ringbuff[bufNow][0:buffLen[bufNow]], ringbuff[bufOld][0:buffLen[bufOld]]...)
+		combined := append(ringbuff[bufOld][0:buffLen[bufOld]], ringbuff[bufNow][0:buffLen[bufNow]]...)
 		// Try to extract a valid message
 		msg, err := Extract(combined)
 		d.printf(1, "Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
