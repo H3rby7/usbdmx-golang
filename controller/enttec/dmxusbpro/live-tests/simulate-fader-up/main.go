@@ -54,7 +54,7 @@ func read(config *serial.Config, interval int) {
 	if err := readController.Connect(); err != nil {
 		log.Fatalf("READER\tFailed to connect DMX Controller: %s", err)
 	}
-	readController.SetLogVerbosity(2)
+	// readController.SetLogVerbosity(1)
 	readController.SwitchReadMode(0)
 	c := make(chan messages.EnttecDMXUSBProApplicationMessage)
 	go readController.OnDMXChange(c, interval)
@@ -74,7 +74,7 @@ func fadeUp(config *serial.Config, interval int) {
 	if err := writeController.Connect(); err != nil {
 		log.Fatalf("WRITER\tFailed to connect DMX Controller: %s", err)
 	}
-	writeController.SetLogVerbosity(2)
+	// writeController.SetLogVerbosity(1)
 	isRunning = true
 	// The DMX values for the fader
 	group := []byte{240, 120, 60}

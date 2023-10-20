@@ -9,6 +9,9 @@ import (
 	"github.com/tarm/serial"
 )
 
+// Prefix for any log and error messages
+const ENTTEC_DMX_USB_PRO_LOG_PREFIX = "EDUP"
+
 // Controller for Enttec DMX USB Pro device to handle communication
 type EnttecDMXUSBProController struct {
 	// Holds DMX data, as DMX starts with channel '1' the index '0' is unused.
@@ -35,6 +38,7 @@ func NewEnttecDMXUSBProController(conf *serial.Config, dmxChannelCount int, isWr
 	d.isReader = !isWriter
 	d.readOnChange = false
 	d.isConnected = false
+	d.logVerbosity = 0
 
 	return d
 }
@@ -70,8 +74,7 @@ Succeeded if no error is returned
 */
 func (d *EnttecDMXUSBProController) Disconnect() error {
 	if d.port == nil {
-		log.Printf("Not connected.")
-		return nil
+		return d.errorf("not connected.")
 	}
 	d.isConnected = false
 	return d.port.Close()
@@ -93,11 +96,11 @@ Note: This does not send out the changes, you must call the 'Commit' method to a
 */
 func (d *EnttecDMXUSBProController) Stage(channel int16, value byte) error {
 	if !d.isWriter {
-		return fmt.Errorf("controller is not in WRITE mode")
+		return d.errorf("controller is not in WRITE mode")
 	}
 	highestChannel := int16(len(d.channels))
 	if channel < 1 || channel > highestChannel {
-		return fmt.Errorf("index %d out of range, must be between 1 and %d", channel, highestChannel)
+		return d.errorf("index %d out of range, must be between 1 and %d", channel, highestChannel)
 	}
 	d.channels[channel] = value
 	return nil
@@ -110,7 +113,7 @@ Note: This does not clear the Stage!
 */
 func (d *EnttecDMXUSBProController) Commit() error {
 	if !d.isWriter {
-		return fmt.Errorf("controller is not in WRITE mode")
+		return d.errorf("controller is not in WRITE mode")
 	}
 	msg := messages.NewEnttecDMXUSBProApplicationMessage(messages.LABEL_OUTPUT_ONLY_SEND_DMX_PACKET_REQUEST, d.channels)
 	return d.writeMessage(msg)
@@ -131,9 +134,7 @@ func (d *EnttecDMXUSBProController) writeMessage(msg messages.EnttecDMXUSBProApp
 	if err != nil {
 		return err
 	}
-	if d.logVerbosity == 1 {
-		log.Printf("Writing \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
-	}
+	d.printf(1, "Writing \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
 	_, err = d.Write(packet)
 	return err
 }
@@ -147,10 +148,10 @@ Setting it to '1' will only read when the data changes and only reads the change
 */
 func (d *EnttecDMXUSBProController) SwitchReadMode(changesOnly byte) error {
 	if changesOnly > 1 {
-		log.Panicf("invalid value, only 0 and 1 are allowed, but got '%d'", changesOnly)
+		d.panicf("invalid value, only 0 and 1 are allowed, but got '%d'", changesOnly)
 	}
 	if !d.isReader {
-		return fmt.Errorf("controller is not in READ mode")
+		return d.errorf("controller is not in READ mode")
 	}
 	msg := messages.NewEnttecDMXUSBProApplicationMessage(messages.LABEL_RECEIVE_DMX_ON_CHANGE, []byte{changesOnly})
 	if err := d.writeMessage(msg); err != nil {
@@ -165,15 +166,14 @@ Expose serial read to be used directly
 */
 func (d *EnttecDMXUSBProController) Read(buf []byte) (int, error) {
 	if d.port == nil || !d.isConnected {
-		return -1, fmt.Errorf("not connected")
+		return -1, d.errorf("not connected")
 	}
 	if !d.isReader {
-		return -1, fmt.Errorf("controller is not in READ mode")
+		return -1, d.errorf("controller is not in READ mode")
 	}
-	if d.logVerbosity == 2 {
-		log.Printf("Reading\t%v", buf)
-	}
-	return d.port.Read(buf)
+	n, err := d.port.Read(buf)
+	d.printf(2, "Read %d bytes:\t%v", n, buf)
+	return n, err
 }
 
 /*
@@ -183,10 +183,9 @@ func (d *EnttecDMXUSBProController) Write(buf []byte) (int, error) {
 	if d.port == nil || !d.isConnected {
 		return -1, fmt.Errorf("not connected")
 	}
-	if d.logVerbosity == 2 {
-		log.Printf("Writing\t%v", buf)
-	}
-	return d.port.Write(buf)
+	n, err := d.port.Write(buf)
+	d.printf(2, "Wrote %d bytes:\t%v", n, buf)
+	return n, err
 }
 
 /*
@@ -201,7 +200,7 @@ Example useage:
 */
 func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProApplicationMessage, readIntervalMS int) {
 	if !d.readOnChange {
-		log.Fatalf("controller is not in READ ON CHANGE mode!")
+		d.panicf("controller is not in READ ON CHANGE mode!")
 	}
 	// Create a ring buffer that can store two reads, as we might get unlucky and read a start-byte just at the end of our current read.
 	// We will switch the buffer to read into with every iteration. The other one will contain the last read, so we can reliably detect messages.
@@ -218,18 +217,20 @@ func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProA
 		// Read into current first buffer
 		n, err := d.Read(ringbuff[bufNow])
 		if err != nil {
-			log.Panicf("error reading from serial, %v", err)
+			d.panicf("error reading from serial, %v", err)
 		}
+		// clear any bytes that have not been updated by read
+		clear(ringbuff[bufNow][n:])
 		// Combine with the older buffer
 		combined := append(ringbuff[bufNow][0:n], ringbuff[bufOld]...)
 		// Try to extract a valid message
 		msg, err := Extract(combined)
-		if d.logVerbosity == 1 {
-			log.Printf("Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
-		}
+		d.printf(1, "Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
 		if err == nil {
 			// No error means there is a message
 			c <- msg
+			// clear all bytes (we only clear the bytes we just read, because the other section was already cleared)
+			clear(ringbuff[bufNow][:n])
 		}
 		time.Sleep(time.Millisecond * time.Duration(readIntervalMS))
 	}
@@ -246,7 +247,21 @@ Set log verbosity
 */
 func (d *EnttecDMXUSBProController) SetLogVerbosity(verbosity uint8) {
 	if verbosity > 2 {
-		log.Panicf("invalid value, only 0, 1 and 2 are allowed, but got '%d'", verbosity)
+		d.panicf("invalid value, only 0, 1 and 2 are allowed, but got '%d'", verbosity)
 	}
 	d.logVerbosity = verbosity
+}
+
+func (d *EnttecDMXUSBProController) printf(level uint8, format string, v ...any) {
+	if d.logVerbosity == level {
+		log.Printf(ENTTEC_DMX_USB_PRO_LOG_PREFIX+": "+format, v...)
+	}
+}
+
+func (d *EnttecDMXUSBProController) errorf(format string, v ...any) error {
+	return fmt.Errorf(ENTTEC_DMX_USB_PRO_LOG_PREFIX+": "+format, v...)
+}
+
+func (d *EnttecDMXUSBProController) panicf(format string, v ...any) {
+	log.Panicf(ENTTEC_DMX_USB_PRO_LOG_PREFIX+": "+format, v...)
 }
