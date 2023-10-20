@@ -19,9 +19,10 @@ type EnttecDMXUSBProController struct {
 	// Is the widget in 'only read changes'-mode (as opposed to read everything)
 	readOnChange bool
 
-	isConnected bool
-	conf        *serial.Config
-	port        *serial.Port
+	isConnected  bool
+	conf         *serial.Config
+	port         *serial.Port
+	debugEnabled bool
 }
 
 // Helper function for creating a new DMX USB PRO controller
@@ -130,7 +131,9 @@ func (d *EnttecDMXUSBProController) writeMessage(msg messages.EnttecDMXUSBProApp
 	if err != nil {
 		return err
 	}
-	log.Printf("Writing \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
+	if d.debugEnabled {
+		log.Printf("Writing \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
+	}
 	_, err = d.Write(packet)
 	return err
 }
@@ -221,4 +224,11 @@ func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProA
 		}
 		time.Sleep(time.Millisecond * time.Duration(readIntervalMS))
 	}
+}
+
+/*
+Set debug printing ON/OFF
+*/
+func (d *EnttecDMXUSBProController) SetDebug(enabled bool) {
+	d.debugEnabled = enabled
 }

@@ -19,4 +19,6 @@ type DMXController interface {
 	GetStage() []byte
 	// Clear all staged values to 0
 	ClearStage()
+	// Set debug printing ON/OFF
+	SetDebug(bool)
 }
