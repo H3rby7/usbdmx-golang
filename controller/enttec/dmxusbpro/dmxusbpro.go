@@ -22,7 +22,7 @@ type EnttecDMXUSBProController struct {
 	isConnected  bool
 	conf         *serial.Config
 	port         *serial.Port
-	debugEnabled bool
+	logVerbosity uint8
 }
 
 // Helper function for creating a new DMX USB PRO controller
@@ -131,7 +131,7 @@ func (d *EnttecDMXUSBProController) writeMessage(msg messages.EnttecDMXUSBProApp
 	if err != nil {
 		return err
 	}
-	if d.debugEnabled {
+	if d.logVerbosity == 1 {
 		log.Printf("Writing \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
 	}
 	_, err = d.Write(packet)
@@ -170,6 +170,9 @@ func (d *EnttecDMXUSBProController) Read(buf []byte) (int, error) {
 	if !d.isReader {
 		return -1, fmt.Errorf("controller is not in READ mode")
 	}
+	if d.logVerbosity == 2 {
+		log.Printf("Reading\t%v", buf)
+	}
 	return d.port.Read(buf)
 }
 
@@ -179,6 +182,9 @@ Expose serial write to be used directly
 func (d *EnttecDMXUSBProController) Write(buf []byte) (int, error) {
 	if d.port == nil || !d.isConnected {
 		return -1, fmt.Errorf("not connected")
+	}
+	if d.logVerbosity == 2 {
+		log.Printf("Writing\t%v", buf)
 	}
 	return d.port.Write(buf)
 }
@@ -218,6 +224,9 @@ func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProA
 		combined := append(ringbuff[bufNow][0:n], ringbuff[bufOld]...)
 		// Try to extract a valid message
 		msg, err := Extract(combined)
+		if d.logVerbosity == 1 {
+			log.Printf("Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
+		}
 		if err == nil {
 			// No error means there is a message
 			c <- msg
@@ -227,8 +236,17 @@ func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProA
 }
 
 /*
-Set debug printing ON/OFF
+Set log verbosity
+
+0 = no logging
+
+1 = message logging
+
+2 = byte logging
 */
-func (d *EnttecDMXUSBProController) SetDebug(enabled bool) {
-	d.debugEnabled = enabled
+func (d *EnttecDMXUSBProController) SetLogVerbosity(verbosity uint8) {
+	if verbosity > 2 {
+		log.Panicf("invalid value, only 0, 1 and 2 are allowed, but got '%d'", verbosity)
+	}
+	d.logVerbosity = verbosity
 }
