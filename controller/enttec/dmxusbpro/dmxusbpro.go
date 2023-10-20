@@ -193,7 +193,6 @@ Start routine to read from DMX and get the results back via channel
 
 Example useage:
 
-	controller.SwitchReadMode(1) // read changes only
 	c := make(chan messages.EnttecDMXUSBProApplicationMessage) // create channel
 	go controller.OnDMXChange(c) // start routine
 	for msg := range c { ... } // handle incoming data
@@ -208,6 +207,8 @@ func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProA
 		make([]byte, messages.NUM_BYTES_WRAPPER+messages.MAXIMUM_DATA_LENGTH),
 		make([]byte, messages.NUM_BYTES_WRAPPER+messages.MAXIMUM_DATA_LENGTH),
 	}
+	// Hold how many bytes we have read, this way we only evaluate new data
+	buffLen := []int{0, 0}
 	order := 0
 	for {
 		// Calculate order of buffers
@@ -219,18 +220,16 @@ func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProA
 		if err != nil {
 			d.panicf("error reading from serial, %v", err)
 		}
-		// clear any bytes that have not been updated by read
-		clear(ringbuff[bufNow][n:])
-		// Combine with the older buffer
-		combined := append(ringbuff[bufNow][0:n], ringbuff[bufOld]...)
+		// Store how many bytes we have read
+		buffLen[bufNow] = n
+		// Combine with the older buffer, respecting how many bytes have been read "now" and "old"
+		combined := append(ringbuff[bufNow][0:buffLen[bufNow]], ringbuff[bufOld][0:buffLen[bufOld]]...)
 		// Try to extract a valid message
 		msg, err := Extract(combined)
 		d.printf(1, "Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
 		if err == nil {
 			// No error means there is a message
 			c <- msg
-			// clear all bytes (we only clear the bytes we just read, because the other section was already cleared)
-			clear(ringbuff[bufNow][:n])
 		}
 		time.Sleep(time.Millisecond * time.Duration(readIntervalMS))
 	}
