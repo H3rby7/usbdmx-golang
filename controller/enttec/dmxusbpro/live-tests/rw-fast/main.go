@@ -57,7 +57,7 @@ func read(config *serial.Config, interval int) {
 	}
 	readController.SwitchReadMode(1)
 	c := make(chan messages.EnttecDMXUSBProApplicationMessage)
-	go readController.OnDMXChange(c, 30)
+	go readController.OnDMXChange(c, interval)
 	for msg := range c {
 		cs, err := messages.ToChangeSet(msg)
 		if err != nil {
