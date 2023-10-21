@@ -201,37 +201,29 @@ func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProA
 	if !d.readOnChange {
 		d.panicf("controller is not in READ ON CHANGE mode!")
 	}
-	// Create a ring buffer that can store two reads, as we might get unlucky and read a start-byte just at the end of our current read.
-	// We will switch the buffer to read into with every iteration. The other one will contain the last read, so we can reliably detect messages.
-	ringbuff := [][]byte{
-		make([]byte, messages.NUM_BYTES_WRAPPER+messages.MAXIMUM_DATA_LENGTH),
-		make([]byte, messages.NUM_BYTES_WRAPPER+messages.MAXIMUM_DATA_LENGTH),
-	}
-	// Hold how many bytes we have read, this way we only evaluate new data
-	buffLen := []int{0, 0}
-	order := 0
+	// Buffer used for reading fresh data
+	readBuf := make([]byte, messages.MAXIMUM_MESSAGE_LENGTH)
+	// Buffer containing old, yet unused data
+	oldBuf := make([]byte, 0)
+	// Detected messages
+	var msgs []messages.EnttecDMXUSBProApplicationMessage
 	for {
-		// Calculate order of buffers
-		order = (order + 1) % 2
-		bufNow := order
-		bufOld := (order + 1) % 2
-		// Read into current first buffer
-		n, err := d.Read(ringbuff[bufNow])
+		n, err := d.Read(readBuf)
 		if err != nil {
 			d.panicf("error reading from serial, %v", err)
 		}
-		// Store how many bytes we have read
-		buffLen[bufNow] = n
-		// Combine with the older buffer, respecting how many bytes have been read "now" and "old"
-		combined := append(ringbuff[bufOld][0:buffLen[bufOld]], ringbuff[bufNow][0:buffLen[bufNow]]...)
-		// Try to extract a valid message
-		msgs, err := Extract(combined)
-		if err == nil {
-			// No error means there is messages
-			for _, msg := range msgs {
-				d.printf(1, "Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
-				c <- msg
-			}
+		// Combine newly read data with yet unused data
+		combined := append(oldBuf, readBuf[:n]...)
+		// Try to extract valid messages
+		msgs, oldBuf = Extract(combined)
+		for _, msg := range msgs {
+			d.printf(1, "Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
+			c <- msg
+		}
+		if len(oldBuf) > messages.MAXIMUM_MESSAGE_LENGTH {
+			dropOldDataBefore := len(oldBuf) - messages.MAXIMUM_MESSAGE_LENGTH
+			d.printf(1, "Dropping old, unused data:\t%v", oldBuf[:dropOldDataBefore])
+			oldBuf = oldBuf[dropOldDataBefore:]
 		}
 		time.Sleep(time.Millisecond * time.Duration(readIntervalMS))
 	}
