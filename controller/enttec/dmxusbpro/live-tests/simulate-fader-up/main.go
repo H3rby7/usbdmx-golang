@@ -56,11 +56,11 @@ func main() {
 
 func read(config *serial.Config, interval int, changesOnly bool) {
 	// Create a controller and connect to it
-	readController = dmxusbpro.NewEnttecDMXUSBProController(config, 4, false)
+	readController = dmxusbpro.NewEnttecDMXUSBProController(config, 3, false)
 	if err := readController.Connect(); err != nil {
 		log.Fatalf("READER\tFailed to connect DMX Controller: %s", err)
 	}
-	// readController.SetLogVerbosity(1)
+	readController.SetLogVerbosity(0)
 	if changesOnly {
 		readController.SwitchReadMode(1)
 	} else {
@@ -89,11 +89,11 @@ func read(config *serial.Config, interval int, changesOnly bool) {
 
 func fadeUp(config *serial.Config, interval int) {
 	// Create a controller and connect to it
-	writeController = dmxusbpro.NewEnttecDMXUSBProController(config, 4, true)
+	writeController = dmxusbpro.NewEnttecDMXUSBProController(config, 3, true)
 	if err := writeController.Connect(); err != nil {
 		log.Fatalf("WRITER\tFailed to connect DMX Controller: %s", err)
 	}
-	// writeController.SetLogVerbosity(1)
+	writeController.SetLogVerbosity(0)
 	isRunning = true
 	// The DMX values for the fader
 	group := []byte{240, 120, 60}
