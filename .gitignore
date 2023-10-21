@@ -1,2 +1,4 @@
 vendor/
 **/testdata/fuzz
+*.log
+log
