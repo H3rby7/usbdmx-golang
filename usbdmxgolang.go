@@ -19,4 +19,6 @@ type DMXController interface {
 	GetStage() []byte
 	// Clear all staged values to 0
 	ClearStage()
+	// Set log verbosity 0 = no logging; 1 = message logging; 2 = byte logging
+	SetLogVerbosity(uint8)
 }

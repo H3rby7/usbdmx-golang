@@ -18,6 +18,8 @@ const (
 	NUM_BYTES_WRAPPER = NUM_BYTES_BEFORE_PAYLOAD + NUM_BYTES_AFTER_PAYLOAD
 	// Maximum data length
 	MAXIMUM_DATA_LENGTH = 600
+	// Maximum number of bytes for a valid message
+	MAXIMUM_MESSAGE_LENGTH = NUM_BYTES_WRAPPER + MAXIMUM_DATA_LENGTH
 )
 
 const (
