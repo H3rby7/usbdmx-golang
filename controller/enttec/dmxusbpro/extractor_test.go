@@ -95,11 +95,12 @@ func TestExtractorFailsEndBeforeStart(t *testing.T) {
 }
 
 func runAndAssertValid(t *testing.T, label byte, payload []byte, input []byte) {
-	msg, err := Extract(input)
+	msgs, err := Extract(input)
 	// Should not error
 	if err != nil {
 		t.Errorf("expected a valid message, but got error %v", err)
 	}
+	msg := msgs[0]
 	// check Label
 	if msg.GetLabel() != label {
 		t.Errorf("expected label to be %X, but was %X", label, msg.GetLabel())

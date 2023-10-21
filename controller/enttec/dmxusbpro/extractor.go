@@ -6,7 +6,7 @@ import (
 	"github.com/H3rby7/usbdmx-golang/controller/enttec/dmxusbpro/messages"
 )
 
-func Extract(serialData []byte) (msg messages.EnttecDMXUSBProApplicationMessage, err error) {
+func Extract(serialData []byte) (msgs []messages.EnttecDMXUSBProApplicationMessage, err error) {
 	// Find potential start/end points
 	potentialStarts := make([]int, 0, 1)
 	potentialEnds := make([]int, 0, 1)
@@ -39,7 +39,9 @@ func Extract(serialData []byte) (msg messages.EnttecDMXUSBProApplicationMessage,
 																														(reads second msg of last read, but third one would already be there)
 		16:53:25.663382 READER  Changeset is:   map[1:110 2:55]
 	*/
-	// Check if a combination of Start/End Point gives us a valid DMX message.
+	// **** Check if a combination of Start/End Point gives us a valid DMX message. ****
+	// List of extracted messages
+	msgs = make([]messages.EnttecDMXUSBProApplicationMessage, 0, 1)
 	for _, start := range potentialStarts {
 		for _, end := range potentialEnds {
 			if end < start {
@@ -48,10 +50,13 @@ func Extract(serialData []byte) (msg messages.EnttecDMXUSBProApplicationMessage,
 			}
 			msg, err := messages.FromBytes(serialData[start : end+1])
 			if err == nil {
-				return msg, err
+				// no error means this is a valid message
+				msgs = append(msgs, msg)
 			}
 		}
 	}
-	err = fmt.Errorf("data does not contain a valid message")
+	if len(msgs) < 1 {
+		err = fmt.Errorf("data does not contain a valid message")
+	}
 	return
 }

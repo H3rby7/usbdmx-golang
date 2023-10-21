@@ -225,11 +225,13 @@ func (d *EnttecDMXUSBProController) OnDMXChange(c chan messages.EnttecDMXUSBProA
 		// Combine with the older buffer, respecting how many bytes have been read "now" and "old"
 		combined := append(ringbuff[bufOld][0:buffLen[bufOld]], ringbuff[bufNow][0:buffLen[bufNow]]...)
 		// Try to extract a valid message
-		msg, err := Extract(combined)
-		d.printf(1, "Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
+		msgs, err := Extract(combined)
 		if err == nil {
-			// No error means there is a message
-			c <- msg
+			// No error means there is messages
+			for _, msg := range msgs {
+				d.printf(1, "Read \tlabel=%v \tdata=%v", msg.GetLabel(), msg.GetPayload())
+				c <- msg
+			}
 		}
 		time.Sleep(time.Millisecond * time.Duration(readIntervalMS))
 	}
