@@ -45,9 +45,17 @@ func main() {
 		log.Fatalf("Failed to connect DMX Controller: %s", err)
 	}
 	handleCancel()
-	controller.SwitchReadMode(1)
+	if err := controller.SwitchReadMode(1); err != nil {
+		log.Fatalf("Failed to switch read mode: %s", err)
+	}
 	c := make(chan messages.EnttecDMXUSBProApplicationMessage)
 	go controller.OnDMXChange(c, 30)
+	// Ends once the controller gets disconnected (see 'handleCancel') or reading fails
+	defer func() {
+		if err := controller.LastReadError(); err != nil {
+			log.Fatalf("Stopped reading: %s", err)
+		}
+	}()
 	for msg := range c {
 		cs, err := messages.ToChangeSet(msg)
 		if err != nil {

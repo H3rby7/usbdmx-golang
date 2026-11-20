@@ -64,7 +64,9 @@ func (msg *EnttecDMXUSBProApplicationMessage) GetLabel() byte {
 
 // Return a copy of the message's payload
 func (msg *EnttecDMXUSBProApplicationMessage) GetPayload() []byte {
-	return msg.payload[:]
+	payload := make([]byte, len(msg.payload))
+	copy(payload, msg.payload)
+	return payload
 }
 
 // Convert the message into byte format that can be send to the widget.

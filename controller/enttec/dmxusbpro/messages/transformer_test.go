@@ -134,3 +134,64 @@ func TestToChangeSetMultipleChannelsChanged(t *testing.T) {
 		t.Errorf("expected channel[%d] to be %d, but was %d", 14, 114, result[14])
 	}
 }
+
+// Last byte of the changed bit array is 1000 0000 => array bit 39
+func TestToChangeSetBit39Changed(t *testing.T) {
+	startChangedByteNumber := 2
+	input := EnttecDMXUSBProApplicationMessage{
+		label:   LABEL_RECEIVED_DMX_CHANGE_OF_STATE_PACKET,
+		payload: []byte{byte(startChangedByteNumber), 0, 0, 0, 0, 0x80, 42},
+	}
+	result, err := ToChangeSet(input)
+	if err != nil {
+		t.Fatalf("expected no error, but got %v", err)
+	}
+	slot := startChangedByteNumber*8 + 39
+	if len(result) != 1 || result[slot] != 42 {
+		t.Errorf("expected changeset to be map[%d:42], but was %v", slot, result)
+	}
+}
+
+// All 40 bits set, with 40 data bytes
+func TestToChangeSetAllBitsChanged(t *testing.T) {
+	payload := []byte{1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+	for i := 0; i < 40; i++ {
+		payload = append(payload, byte(100+i))
+	}
+	result, err := ToChangeSet(EnttecDMXUSBProApplicationMessage{label: LABEL_RECEIVED_DMX_CHANGE_OF_STATE_PACKET, payload: payload})
+	if err != nil {
+		t.Fatalf("expected no error, but got %v", err)
+	}
+	if len(result) != 40 {
+		t.Errorf("expected 40 changes, but got %d: %v", len(result), result)
+	}
+	for i := 0; i < 40; i++ {
+		if result[8+i] != byte(100+i) {
+			t.Errorf("expected slot %d to be %d, but was %d", 8+i, 100+i, result[8+i])
+		}
+	}
+}
+
+// 0000 0011 => 2 set bits, but only 1 data byte
+func TestToChangeSetTooFewDataBytes(t *testing.T) {
+	input := EnttecDMXUSBProApplicationMessage{
+		label:   LABEL_RECEIVED_DMX_CHANGE_OF_STATE_PACKET,
+		payload: []byte{0, 3, 0, 0, 0, 0, 69},
+	}
+	var result map[int]byte
+	var err error
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				t.Fatalf("expected an error, but got a panic: %v", r)
+			}
+		}()
+		result, err = ToChangeSet(input)
+	}()
+	if err == nil {
+		t.Fatalf("expected an error, but got changeset %v", result)
+	}
+	if result != nil {
+		t.Errorf("expected no changeset, but got %v", result)
+	}
+}

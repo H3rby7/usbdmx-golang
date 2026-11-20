@@ -1,0 +1,8 @@
+{
+    // Let gopls see the hardware tests in 'controller/enttec/dmxusbpro/live-tests/roundtrip'
+    "gopls": {
+        "buildFlags": [
+            "-tags=hardware"
+        ]
+    }
+}

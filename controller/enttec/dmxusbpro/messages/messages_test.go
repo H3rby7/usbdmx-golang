@@ -242,3 +242,14 @@ func FuzzTestFromBytes(f *testing.F) {
 		}
 	})
 }
+
+// Changing the returned payload must not change the message
+func TestGetPayloadReturnsCopy(t *testing.T) {
+	msg := NewEnttecDMXUSBProApplicationMessage(LABEL_OUTPUT_ONLY_SEND_DMX_PACKET_REQUEST, []byte{0, 1, 2})
+	payload := msg.GetPayload()
+	payload[1] = 99
+	if again := msg.GetPayload(); again[1] != 1 {
+		t.Errorf("expected payload[1] to still be '1' but was %d", again[1])
+	}
+}
+

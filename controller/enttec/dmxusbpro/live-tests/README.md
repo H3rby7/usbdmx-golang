@@ -3,10 +3,34 @@
 Conducted with two widgets both connected to the computer via USB and to each other using DMX.
 
 - [Live Tests](#live-tests)
+  - [Round Trip](#round-trip)
   - [RW Fast](#rw-fast)
   - [Simulate Fader Up](#simulate-fader-up)
     - [Observations](#observations)
 
+## Round Trip
+
+An automated test (`go test`), unlike the other live tests, which only log.
+The writer sends several DMX states (all channels, a single channel, all zero) and the test confirms each one with the reader,
+once with the reader in 'changes only' mode and once in 'send always' mode.
+It also checks that `Disconnect` stops a reader that is waiting for data on a static DMX input.
+
+The test needs the `hardware` build tag, so it doesn't run in CI or with a plain `go test ./...`.
+Run it from the repository root, `-writer` and `-reader` default to `COM8` and `COM7`:
+
+    go test -tags hardware -v -count=1 ./controller/enttec/dmxusbpro/live-tests/roundtrip/ -args -writer=COM8 -reader=COM7
+
+Further flags (pass them after `-args`):
+
+Flag | Default | Meaning
+--- | --- | ---
+`-channels` | `512` | number of DMX channels to write and confirm (1 to 512)
+`-read-interval` | `5` | read interval of the reader in milliseconds
+`-timeout` | `3s` | how long the reader may take to confirm a written state
+`-stop-timeout` | `5s` | how long the reader may take to stop after `Disconnect`
+`-baud` | `57600` | baud rate for both widgets
+
+*Note: any fixture connected to the DMX line will react, the output is cleared at the end of each test.*
 
 ## RW Fast
 
